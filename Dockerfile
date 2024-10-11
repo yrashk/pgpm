@@ -17,5 +17,13 @@ RUN dnf -y install rpmlint ruby ruby-devel mock git gcc zlib-devel
 COPY lib/pgpm/rpm/mock/configs configs
 RUN --security=insecure for file in $(find configs -name '*.cfg'); do mock -r $file --init ; done
 
+
+# Pre-initialize gems. It may need an update later, but it'll save us time
+RUN mkdir -p /pgpm
+COPY lib /pgpm/lib
+COPY Gemfile /pgpm
+COPY pgpm.gemspec /pgpm
+RUN cd /pgpm && bundle
+
 VOLUME /pgpm
 WORKDIR /pgpm
