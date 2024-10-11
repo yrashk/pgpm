@@ -6,8 +6,10 @@ module Pgpm
       class Operation
         def self.buildsrpm(spec, sources, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
-          args = ["--chain", "--buildsrpm", "--spec", spec, "--resultdir",
-                  buffer_result_dir]
+          args = [
+            "--config-opts", "print_main_output=True",
+            "--chain", "--buildsrpm", "--spec", spec, "--resultdir",
+            buffer_result_dir]
           args.push("--sources", sources) if sources
           args.push("-r", config.to_s) unless config.nil?
           new(*args, cb: lambda {
@@ -23,7 +25,10 @@ module Pgpm
 
         def self.rebuild(srpm, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
-          args = ["--chain", "--rebuild", srpm, "--resultdir", buffer_result_dir]
+          args = [
+                  "--config-opts", "print_main_output=True",
+                  "--chain", "--rebuild", srpm, "--resultdir", buffer_result_dir,
+          ]
           args.push("-r", config.to_s) unless config.nil?
           new(*args, cb: lambda {
             rpms = Dir.glob("*.rpm", base: buffer_result_dir).map do |f|
