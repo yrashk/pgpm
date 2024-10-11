@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "pgpm"
+require "dry/cli"
+require "parallel"
+
+module Pgpm
+  module CLI
+    module Commands
+      extend Dry::CLI::Registry
+
+      class Version < Dry::CLI::Command
+        desc "Print version"
+
+        def call(*)
+          puts Pgpm::VERSION
+        end
+      end
+
+      class Build < Dry::CLI::Command
+        desc "Build packages"
+
+        option :os, type: :string, default: Pgpm::OS.auto_detect.name, desc: "OS name"
+        argument :packages, type: :array, required: true, desc: "Package names"
+
+        def call(packages:, args: nil, os: nil)
+          _ = args
+          _ = os
+
+          # puts "There is no build support for OS distribution `#{os}`"
+          # exit(1)
+          pkgs = Parallel.flat_map(packages) do |package|
+            name, version = package.split("@")
+            version ||= :latest
+            p = Pgpm::Package[name]
+            if p.nil?
+              puts "Package #{name} not found"
+              exit(1)
+            end
+            pkg = p[version]
+            if pkg.nil?
+              puts "Package #{name} with version #{version} not found"
+              exit(1)
+            end
+            pkg
+          end
+          b = pkgs.reduce(nil) do |c, p|
+            spec = p.to_rpm_spec
+            builder = Pgpm::RPM::Builder.new(spec, os: Pgpm::OS::RockyEPEL9.new)
+            src_builder = builder.source_builder
+            p = c.nil? ? src_builder : c.and_then(src_builder)
+            p.and_then(builder.versionless_builder)
+          end
+
+          srpms = b.call
+          puts "============="
+          pp srpms
+          puts "============= "
+          Pgpm::RPM::Builder.builder(srpms, os: Pgpm::OS::RockyEPEL9.new).call
+        end
+      end
+
+      class Search < Dry::CLI::Command
+        argument :query, type: :string, default: ".*", desc: "Search query"
+
+        def call(query:, args: nil)
+          _ = args
+          query_regexp = Regexp.new(query, "i")
+          Parallel.filter_map(Pgpm::Package) do |p|
+            matches = p.all_searchable_texts.any? do |t|
+              t =~ query_regexp
+            end
+            "#{p.package_name}: #{p.description}" if matches
+          end.each { |l| puts l }
+        end
+      end
+
+      register "version", Version, aliases: ["v", "-v", "--version"]
+      register "build", Build
+      register "search", Search
+    end
+  end
+end
+
+Pgpm.load_packages(File.join(Dir.pwd, "packages"))
+Dry::CLI.new(Pgpm::CLI::Commands).call
