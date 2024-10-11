@@ -4,17 +4,13 @@ module Pgpm
   module RPM
     module Mock
       class Config
-        def initialize(source, path: nil)
-          @source = source
-          @path = path
-          @digest = Digest::SHA1.hexdigest(source)
+        def initialize(name)
+          @source = name
+          @path = File.absolute_path(File.join(File.dirname(__FILE__),"..","mock", "configs","#{name}.cfg"))
         end
 
-        def path
-          f = Pathname(@path).join("mock-#{@digest}.cfg")
-          File.write(f, @source) if !File.exist?(f) || @digest != Digest::SHA1.hexdigest(File.read(f))
-          f
-        end
+        attr_reader :path
+
       end
     end
   end

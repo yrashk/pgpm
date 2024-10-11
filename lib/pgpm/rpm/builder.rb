@@ -23,7 +23,7 @@ module Pgpm
               File.write(srcfile, src.read)
               puts " done."
             end
-            cfg = Pgpm::RPM::Mock::Config.new(@os.mock_config, path: target_directory)
+            cfg = Pgpm::RPM::Mock::Config.new(@os.mock_config)
             Pgpm::RPM::Mock::Operation.buildsrpm(specfile.path, sources, config: cfg.path, result_dir: target_directory, cb: lambda {
               FileUtils.rm_rf(dir)
             })
@@ -38,7 +38,7 @@ module Pgpm
           File.open(Pathname(dir).join("#{@spec.package.name}.spec"), "w") do |specfile|
             specfile.write(@spec.versionless)
             specfile.close
-            cfg = Pgpm::RPM::Mock::Config.new(@os.mock_config, path: target_directory)
+            cfg = Pgpm::RPM::Mock::Config.new(@os.mock_config)
             Pgpm::RPM::Mock::Operation.buildsrpm(specfile.path, nil, config: cfg.path, result_dir: target_directory, cb: lambda {
               FileUtils.rm_rf(dir)
             })
@@ -50,7 +50,7 @@ module Pgpm
         os ||= Pgpm::OS.auto_detect
         os.with_scope do
           target_directory ||= "."
-          cfg = Pgpm::RPM::Mock::Config.new(os.mock_config, path: target_directory)
+          cfg = Pgpm::RPM::Mock::Config.new(os.mock_config)
           srpm = [srpm] if srpm.is_a?(String)
           srpm.reduce(nil) do |b, rpm|
             op = Pgpm::RPM::Mock::Operation.rebuild(rpm, config: cfg.path, result_dir: target_directory)
