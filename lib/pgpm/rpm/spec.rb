@@ -61,7 +61,7 @@ module Pgpm
 
         <<~EOF
           Name: pgpm-#{@package.name}-#{@postgres_version}_#{@package.version}
-          Version: #{@package.version}
+          Version: 1
           Release: 1%{?dist}
           Summary: #{@package.summary}
           License: #{@package.license}
