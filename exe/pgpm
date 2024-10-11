@@ -55,9 +55,6 @@ module Pgpm
           end
 
           srpms = b.call
-          puts "============="
-          pp srpms
-          puts "============= "
           Pgpm::RPM::Builder.builder(srpms, os: Pgpm::OS::RockyEPEL9.new).call
         end
       end
