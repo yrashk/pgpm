@@ -17,7 +17,7 @@ module Pgpm
             specfile.close
             sources = File.join(dir, "sources")
             FileUtils.mkdir_p(sources)
-            @spec.package.sources.map do |src|
+            @spec.sources.map do |src|
               print "Downloading #{src.name}..."
               srcfile = File.join(sources, src.name)
               File.write(srcfile, src.read)
