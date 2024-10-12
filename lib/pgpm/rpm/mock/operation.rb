@@ -9,7 +9,8 @@ module Pgpm
           args = [
             "--config-opts", "print_main_output=True",
             "--chain", "--buildsrpm", "--spec", spec, "--resultdir",
-            buffer_result_dir]
+            buffer_result_dir
+          ]
           args.push("--sources", sources) if sources
           args.push("-r", config.to_s) unless config.nil?
           new(*args, cb: lambda {
@@ -26,8 +27,8 @@ module Pgpm
         def self.rebuild(srpm, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
           args = [
-                  "--config-opts", "print_main_output=True",
-                  "--chain", "--rebuild", srpm, "--resultdir", buffer_result_dir,
+            "--config-opts", "print_main_output=True",
+            "--chain", "--rebuild", srpm, "--resultdir", buffer_result_dir
           ]
           args.push("-r", config.to_s) unless config.nil?
           new(*args, cb: lambda {
