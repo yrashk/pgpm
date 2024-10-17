@@ -52,14 +52,14 @@ module Omnigres
         Hash[@git.show(c,
                        "versions.txt").split("\n").map do |l|
                ext, ver = l.split("=")
-               [[ext, c.sha], ver]
+               [[ext, c.sha], Pgpm::Package::Version.new(ver)]
              end]
       end
       extensions = versions_maps.flat_map(&:keys).map(&:first).uniq
       @@extensions[@git.log.first.sha] = Hash[extensions.map do |e|
         [e, versions_maps.map do |m|
           m.transform_keys(&:first)[e]
-        end.compact.uniq.map { |v| SemverDialects.parse_version("cargo", v) }.sort.map(&:to_s)]
+        end.compact.uniq.sort]
       end]
       last_hashes = Hash[versions_maps.flat_map do |h|
         h.each_pair.map { |(ext, sha), ver| [[ext, ver], sha] }

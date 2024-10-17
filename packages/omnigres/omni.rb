@@ -144,7 +144,7 @@ module Omnigres
     def previous_version
       return @previous_version if @previous_version
 
-      sorted_versions = self.class.package_versions.sort_by { |v| SemverDialects.parse_version("cargo", v) }.map(&:to_s)
+      sorted_versions = self.class.package_versions.sort
       index = sorted_versions.index(version)
       return unless index.positive?
 

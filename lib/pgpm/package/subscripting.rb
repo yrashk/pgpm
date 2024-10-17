@@ -12,12 +12,12 @@ module Pgpm
           elsif name == :latest && package_versioning_scheme == :semver
             return nil if package_versions.empty?
 
-            version = package_versions.map { |ver| SemverDialects.parse_version("cargo", ver) }.last
-            new(version.to_s)
+            version = package_versions.map { |ver| ver.is_a?(Pgpm::Package::Version) ? ver : Pgpm::Package::Version.new(ver) }.last
+            new(Pgpm::Package::Version.new(version.to_s))
           elsif name == :latest
             null
           elsif package_versions.include?(name)
-            new(name)
+            new(Pgpm::Package::Version.new(name.to_s))
           else
             all_subclasses.find { |klass| klass.package_name == name }
           end

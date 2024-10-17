@@ -15,7 +15,7 @@ module Pgpm
             @tags ||=
               ::Git.ls_remote(git_config.url)["tags"].keys
                    .filter { |key| !key.match?(/.+\^{}$/) }
-            versions = @tags.map { |tag| tag.gsub(/^v/, "") }
+            versions = @tags.map { |tag| tag.gsub(/^v/, "") }.map { |v| Pgpm::Package::Version.new(v) }
             @tag_versions = Hash[@tags.zip(versions)]
             @version_tags = Hash[versions.zip(@tags)]
             versions
@@ -36,7 +36,7 @@ module Pgpm
           end
 
           def source
-            directory = Pgpm::Cache.directory.join(name, version)
+            directory = Pgpm::Cache.directory.join(name, version.to_s)
             tag = version_git_tag
             commit = version_git_commit
             directory = Pgpm::Cache.directory.join(name, commit) if commit
