@@ -12,7 +12,7 @@ module Pgpm
         target_directory ||= "."
         @os.with_scope do
           dir = Dir.mktmpdir("pgpm")
-          File.open(Pathname(dir).join("#{@spec.package.name}.spec"), "w") do |specfile|
+          File.open(Pathname(dir).join("#{safe_package_name}.spec"), "w") do |specfile|
             specfile.write(@spec.to_s)
             specfile.close
             sources = File.join(dir, "sources")
@@ -35,7 +35,7 @@ module Pgpm
         target_directory ||= "."
         @os.with_scope do
           dir = Dir.mktmpdir("pgpm")
-          File.open(Pathname(dir).join("#{@spec.package.name}.spec"), "w") do |specfile|
+          File.open(Pathname(dir).join("#{safe_package_name}.spec"), "w") do |specfile|
             specfile.write(@spec.versionless)
             specfile.close
             cfg = Pgpm::RPM::Mock::Config.new(@os.mock_config)
@@ -57,6 +57,12 @@ module Pgpm
             b.nil? ? op : b.chain(op)
           end
         end
+      end
+
+      private
+
+      def safe_package_name
+        @spec.package.name.gsub(%r{/}, "__")
       end
     end
   end

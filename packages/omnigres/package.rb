@@ -5,7 +5,7 @@ module Omnigres
   module Package
     module ClassMethods
       def package_versions
-        ExtensionDiscovery.new.extension_versions[package_name]
+        ExtensionDiscovery.new.extension_versions[package_name(exclude_namespace: true)]
       end
     end
 
