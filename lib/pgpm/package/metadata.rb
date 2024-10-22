@@ -4,36 +4,40 @@ module Pgpm
   class Package
     module Metadata
       def summary
-        self.class.summary
+        "TODO: summary"
       end
 
       def description
-        self.class.description
+        "TODO: description"
       end
 
       def all_searchable_texts
-        self.class.all_searchable_texts
+        [name, summary, description]
       end
 
       def license
-        self.class.license
+        "TODO: license"
       end
 
       module ClassMethods
-        def summary
-          "TODO: Summary"
+        def extension_name
+          self[:latest].extension_name
         end
 
         def description
-          "TODO: Description"
+          self[:latest].description
+        end
+
+        def summary
+          self[:latest].summary
         end
 
         def license
-          "TODO: License"
+          self[:latest].license
         end
 
         def all_searchable_texts
-          [package_name, summary, description]
+          self[:latest].all_searchable_texts
         end
       end
 

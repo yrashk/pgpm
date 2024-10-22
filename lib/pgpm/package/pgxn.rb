@@ -56,28 +56,6 @@ module Pgpm
           super
         end
       end
-
-      module ClassMethods
-        def extension_name
-          self[:latest].extension_name
-        end
-
-        def description
-          self[:latest].description
-        end
-
-        def summary
-          self[:latest].summary
-        end
-
-        def license
-          self[:latest].license
-        end
-      end
-
-      def self.included(base_class)
-        base_class.extend(ClassMethods)
-      end
     end
   end
 end
