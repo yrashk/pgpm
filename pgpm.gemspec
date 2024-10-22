@@ -42,6 +42,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "minitar", "~> 1.0.2"
   spec.add_dependency "oj", "~> 3.16.6"
   spec.add_dependency "parallel", "~> 1.26.3"
+  spec.add_dependency "perfect_toml", "~> 0.9.0"
   spec.add_dependency "progress", "~> 3.6.0"
   spec.add_dependency "semver_dialects", "~> 3.4.3"
   spec.add_dependency "xdg", "~> 8.7.0"

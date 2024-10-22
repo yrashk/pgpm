@@ -17,6 +17,7 @@ module Pgpm
     include Subscripting
     include Enumerating
     include Building
+    include Rust
     include Initialization
     include Packaging
 

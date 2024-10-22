@@ -6,12 +6,15 @@ module Pgpm
   module OS
     class RedHat < Pgpm::OS::Linux
       def self.auto_detect
-        new # TODO: distinguish between flavors of RedHat
+        # TODO: distinguish between flavors of RedHat
+        RockyEPEL9.new
       end
 
       def self.name
         "redhat"
       end
+
+      def mock_config; end
     end
 
     class RockyEPEL9 < Pgpm::OS::RedHat
@@ -23,13 +26,8 @@ module Pgpm
         Pgpm::RPM::Builder
       end
 
-      def initialize(arch: nil)
-        @arch = arch || RbConfig::CONFIG["host_cpu"]
-        super()
-      end
-
       def mock_config
-        "rocky+epel-9-#{@arch}"
+        "rocky+epel-9-#{Pgpm::Arch.in_scope.name}"
       end
     end
   end

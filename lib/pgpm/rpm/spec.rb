@@ -46,8 +46,8 @@ module Pgpm
 
       def sources
         sources = @package.sources.clone
-        prepare_artifacts = -> { File.open(File.join(File.dirname(__FILE__), "scripts", "prepare_artifacts.sh")) }
-        sources.push(Pgpm::OnDemandFile.new("prepare_artifacts.sh", prepare_artifacts))
+        sources.push(Pgpm::OnDemandFile.new("prepare_artifacts.sh", -> { File.open(File.join(File.dirname(__FILE__), "scripts", "prepare_artifacts.sh")) }))
+        sources.push(Pgpm::OnDemandFile.new("pg_config.sh", -> { File.open(File.join(File.dirname(__FILE__), "scripts", "pg_config.sh")) }))
         sources
       end
 
@@ -89,11 +89,13 @@ module Pgpm
           %install
           export PG_CONFIG=$(rpm -ql #{@postgres_distribution} | grep 'pg_config$')
           export PGPM_BUILDROOT=%{buildroot}
+          cp %{SOURCE#{sources.find_index { |src| src.name == "pg_config.sh" }}} ./pg_config.sh
+          chmod +x ./pg_config.sh
           find %{buildroot} -type f | sort - | sed 's|^%{buildroot}||' > .pgpm_before | sort
           #{@package.install_steps.map(&:to_s).join("\n")}
           export PGPM_EXTENSION_NAME="#{@package.extension_name}"
           export PGPM_EXTENSION_VERSION="#{@package.version}"
-          cp %{SOURCE#{sources.length - 1}} ./prepare_artifacts.sh
+          cp %{SOURCE#{sources.find_index { |src| src.name == "prepare_artifacts.sh" }}} ./prepare_artifacts.sh
           chmod +x ./prepare_artifacts.sh
           ./prepare_artifacts.sh
           find %{buildroot} -type f | sort - | sed 's|^%{buildroot}||' > .pgpm_after | sort
@@ -110,7 +112,7 @@ module Pgpm
 
       def unpack?(src)
         src = src.name if src.respond_to?(:name)
-        src.to_s.end_with?(".tar.gz")
+        src.to_s.end_with?(".tar.gz") || src.to_s.end_with?(".tar.xz")
       end
     end
   end

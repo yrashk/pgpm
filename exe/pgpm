@@ -46,16 +46,25 @@ module Pgpm
             end
             pkg
           end
-          b = pkgs.reduce(nil) do |c, p|
-            spec = p.to_rpm_spec
-            builder = Pgpm::RPM::Builder.new(spec, os: Pgpm::OS::RockyEPEL9.new)
-            src_builder = builder.source_builder
-            p = c.nil? ? src_builder : c.and_then(src_builder)
-            p.and_then(builder.versionless_builder)
-          end
 
-          srpms = b.call
-          Pgpm::RPM::Builder.builder(srpms, os: Pgpm::OS::RockyEPEL9.new).call
+          os = Pgpm::OS.auto_detect
+          arch = Pgpm::Arch.host
+
+          os.with_scope do
+            arch.with_scope do
+              b = pkgs.reduce(nil) do |c, p|
+                p = Pgpm::ScopedObject.new(p, os, arch)
+                spec = p.to_rpm_spec
+                builder = Pgpm::RPM::Builder.new(spec)
+                src_builder = builder.source_builder
+                p = c.nil? ? src_builder : c.and_then(src_builder)
+                p.and_then(builder.versionless_builder)
+              end
+
+              srpms = b.call
+              Pgpm::RPM::Builder.builder(srpms).call
+            end
+          end
         end
       end
 

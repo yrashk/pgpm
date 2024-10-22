@@ -12,6 +12,10 @@ module Pgpm
       def self.name
         "linux"
       end
+
+      def kind
+        "linux"
+      end
     end
   end
 end

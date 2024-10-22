@@ -15,6 +15,14 @@ module Pgpm
         self.class.name
       end
 
+      def self.kind
+        "unknown"
+      end
+
+      def kind
+        self.class.kind
+      end
+
       def self.builder
         nil
       end
