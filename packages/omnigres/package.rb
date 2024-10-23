@@ -45,7 +45,7 @@ module Omnigres
         "cmake --build build --parallel --target inja",
         "cmake --build build --parallel --target package_extensions"
       ]
-      unless @no_migration
+      if previous_version && !@no_migration
         steps.push("scripts/generate_upgrade.sh #{name} #{previous_version.version} " \
           "$(pwd)/omnigres-#{previous_version.version_git_commit} #{version} $(pwd)")
       end
@@ -63,7 +63,7 @@ module Omnigres
         # Package version-specific init file
         "cp build/packaged/extension/#{name}--#{version}.sql $PGPM_BUILDROOT/$($PG_CONFIG --sharedir)/extension"
       ]
-      unless @no_migration
+      if previous_version && !@no_migration
         steps.push("cp build/packaged/extension/#{name}--#{previous_version.version}--#{version}.sql $PGPM_BUILDROOT/$($PG_CONFIG --sharedir)/extension")
       end
       steps
