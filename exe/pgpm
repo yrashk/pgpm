@@ -23,9 +23,10 @@ module Pgpm
         desc "Build packages"
 
         option :os, type: :string, default: Pgpm::OS.auto_detect.name, desc: "OS name"
+        option :arch, type: :string, default: Pgpm::Arch.host.name, desc: "Target architecture"
         argument :packages, type: :array, required: true, desc: "Package names"
 
-        def call(packages:, args: nil, os: nil)
+        def call(packages:, args: nil, os: nil, arch: nil)
           _ = args
           _ = os
 
@@ -48,7 +49,11 @@ module Pgpm
           end
 
           os = Pgpm::OS.auto_detect
-          arch = Pgpm::Arch.host
+          arch = if arch
+                   Pgpm::Arch.new(arch)
+                 else
+                   Pgpm::Arch.host
+                 end
 
           os.with_scope do
             arch.with_scope do

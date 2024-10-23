@@ -26,5 +26,7 @@ COPY Gemfile /pgpm
 COPY pgpm.gemspec /pgpm
 RUN cd /pgpm && bundle
 
+ENV QEMU_CPU max
+
 VOLUME /pgpm
 WORKDIR /pgpm
