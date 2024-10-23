@@ -27,7 +27,7 @@ module Pgpm
       end
 
       def mock_config
-        "rocky+epel-9-#{Pgpm::Arch.in_scope.name}"
+        "rocky+epel-9-#{Pgpm::Arch.in_scope.name}+pgdg"
       end
     end
   end

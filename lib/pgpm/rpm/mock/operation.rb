@@ -7,7 +7,6 @@ module Pgpm
         def self.buildsrpm(spec, sources, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
           args = [
-            "--config-opts", "print_main_output=True",
             "--chain", "--buildsrpm", "--spec", spec, "--resultdir",
             buffer_result_dir
           ]
@@ -27,7 +26,6 @@ module Pgpm
         def self.rebuild(srpm, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
           args = [
-            "--config-opts", "print_main_output=True",
             "--chain", "--rebuild", srpm, "--resultdir", buffer_result_dir
           ]
           args.push("-r", config.to_s) unless config.nil?
@@ -42,15 +40,17 @@ module Pgpm
           })
         end
 
-        def initialize(*args, cb: nil)
+        def initialize(*args, opts: nil, cb: nil)
           @args = args
           @cb = cb
+          @opts = opts || { "print_main_output" => "True", "pgdg_version" => "17" }
         end
 
         attr_reader :args, :cb
 
         def call
-          command = "mock #{@args.join(" ")}"
+          options = @opts.flat_map { |(k, v)| ["--config-opts", "#{k}=#{v}"] }.compact.join(" ")
+          command = "mock #{options} #{@args.join(" ")}"
           raise "Failed to execute `#{command}`" unless system command
 
           @cb&.call
