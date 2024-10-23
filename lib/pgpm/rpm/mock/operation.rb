@@ -43,7 +43,7 @@ module Pgpm
         def initialize(*args, opts: nil, cb: nil)
           @args = args
           @cb = cb
-          @opts = opts || { "print_main_output" => "True", "pgdg_version" => "17" }
+          @opts = opts || { "print_main_output" => "True", "pgdg_version" => Postgres::Distribution.in_scope.major_version }
         end
 
         attr_reader :args, :cb

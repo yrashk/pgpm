@@ -77,7 +77,7 @@ module Pgpm
           super + [
             "rust-#{current_stable_rust}-#{rust_target}/install.sh --prefix=rust",
             "export PATH=$(pwd)/rust/bin:$PATH",
-            "mkdir -p .cargo && echo '#{config}' >> .cargo/config.toml", "cargo install --path vendor/cargo-pgrx-$(cat vendor/PGRX_VERSION)", "cargo pgrx init --pg17 $PG_CONFIG", "cargo generate-lockfile --offline"
+            "mkdir -p .cargo && echo '#{config}' >> .cargo/config.toml", "cargo install --path vendor/cargo-pgrx-$(cat vendor/PGRX_VERSION)", "cargo pgrx init --pg#{Pgpm::Postgres::Distribution.in_scope.major_version} $PG_CONFIG", "cargo generate-lockfile --offline"
           ]
         else
           super
@@ -85,7 +85,7 @@ module Pgpm
       end
 
       def build_steps
-        features = %w[pg17] + rust_default_features
+        features = ["pg#{Pgpm::Postgres::Distribution.in_scope.major_version}"] + rust_default_features
         if cargo_toml_present?
           super + [
             "export PATH=$(pwd)/rust/bin:$PATH",

@@ -24,11 +24,15 @@ module Pgpm
 
         option :os, type: :string, default: Pgpm::OS.auto_detect.name, desc: "OS name"
         option :arch, type: :string, default: Pgpm::Arch.host.name, desc: "Target architecture"
+        option :pgdist, type: :string, default: "pgdg", desc: "Target Postgres distribution"
+        option :pgver, type: :string, default: Pgpm::Postgres::Distribution.versions.last.to_s, desc: "Target Postgres version"
         argument :packages, type: :array, required: true, desc: "Package names"
 
-        def call(packages:, args: nil, os: nil, arch: nil)
+        # rubocop:disable Metrics/ParameterLists:
+        def call(packages:, args: nil, os: nil, arch: nil, pgdist: nil, pgver: nil)
           _ = args
           _ = os
+          _ = pgdist
 
           # puts "There is no build support for OS distribution `#{os}`"
           # exit(1)
@@ -55,22 +59,35 @@ module Pgpm
                    Pgpm::Arch.host
                  end
 
+          pgver = Package::Version.new(pgver)
+          matching_pgver = Postgres::Distribution.versions.find { |v| v.satisfies?(">= #{pgver}") && v.satisfies?("< #{pgver.major + 1}") }
+          unless matching_pgver
+            puts "#{pgver} is not a known Postgres version"
+            exit(1)
+          end
+
+          puts "Building for Postgres #{matching_pgver}"
+          selected_pgdist = Postgres::RedhatBasedPgdg.new(matching_pgver.to_s)
+
           os.with_scope do
             arch.with_scope do
-              b = pkgs.reduce(nil) do |c, p|
-                p = Pgpm::ScopedObject.new(p, os, arch)
-                spec = p.to_rpm_spec
-                builder = Pgpm::RPM::Builder.new(spec)
-                src_builder = builder.source_builder
-                p = c.nil? ? src_builder : c.and_then(src_builder)
-                p.and_then(builder.versionless_builder)
-              end
+              selected_pgdist.with_scope do
+                b = pkgs.reduce(nil) do |c, p|
+                  p = Pgpm::ScopedObject.new(p, os, arch)
+                  spec = p.to_rpm_spec
+                  builder = Pgpm::RPM::Builder.new(spec)
+                  src_builder = builder.source_builder
+                  p = c.nil? ? src_builder : c.and_then(src_builder)
+                  p.and_then(builder.versionless_builder)
+                end
 
-              srpms = b.call
-              Pgpm::RPM::Builder.builder(srpms).call
+                srpms = b.call
+                Pgpm::RPM::Builder.builder(srpms).call
+              end
             end
           end
         end
+        # rubocop:enable Metrics/ParameterLists:
       end
 
       class Search < Dry::CLI::Command

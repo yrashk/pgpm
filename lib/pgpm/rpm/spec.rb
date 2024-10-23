@@ -8,24 +8,23 @@ module Pgpm
     class Spec
       attr_reader :package, :release, :postgres_version, :postgres_distribution
 
-      def initialize(package, postgres_version: nil, postgres_distribution: nil)
+      def initialize(package)
         @package = package
         @release = 1
 
-        @postgres_version = postgres_version || "17"
-        @postgres_distribution = postgres_distribution || "postgresql#{@postgres_version}"
+        @postgres_distribution = Pgpm::Postgres::Distribution.in_scope
       end
 
       def versionless
         <<~EOF
-          Name: pgpm-#{@package.name}-#{@postgres_version}
+          Name: pgpm-#{@package.name}-#{@postgres_distribution.version}
           Version: #{@package.version}
           Release: #{@release}%{?dist}
           Summary: #{@package.summary}
           License: #{@package.license}
 
-          BuildRequires: #{@postgres_distribution} #{@postgres_distribution}-devel #{@postgres_distribution}-server
-          Requires: pgpm-#{@package.name}-#{@postgres_version}_#{@package.version}
+          BuildRequires: #{@postgres_distribution.build_time_requirement_packages.join(" ")}
+          Requires: pgpm-#{@package.name}-#{@postgres_distribution.version}_#{@package.version}
           BuildArch:  noarch
 
           %description
@@ -34,7 +33,7 @@ module Pgpm
           %build
 
           %install
-          export PG_CONFIG=$(rpm -ql #{@postgres_distribution} | grep 'pg_config$')
+          export PG_CONFIG=$(rpm -ql #{@postgres_distribution.pg_config_package} | grep 'pg_config$')
           mkdir -p %{buildroot}$($PG_CONFIG --sharedir)/extension
           export CONTROL=%{buildroot}$($PG_CONFIG --sharedir)/extension/#{@package.extension_name}.control
           echo "default_version = '#{@package.version}'" > $CONTROL
@@ -60,16 +59,16 @@ module Pgpm
         end
 
         <<~EOF
-          Name: pgpm-#{@package.name}-#{@postgres_version}_#{@package.version}
+          Name: pgpm-#{@package.name}-#{@postgres_distribution.version}_#{@package.version}
           Version: 1
           Release: 1%{?dist}
           Summary: #{@package.summary}
           License: #{@package.license}
           #{sources.each_with_index.map { |src, index| "Source#{index}: #{src.name}" }.join("\n")}
 
-          BuildRequires: #{@postgres_distribution} #{@postgres_distribution}-devel #{@postgres_distribution}-server
+          BuildRequires: #{@postgres_distribution.build_time_requirement_packages.join(" ")}
           #{@package.build_dependencies.map { |dep| "BuildRequires: #{dep}" }.join("\n")}
-          Requires: #{@postgres_distribution}
+          Requires: #{@postgres_distribution.requirement_packages.join(" ")}
 
           %description
           #{@package.description}
@@ -78,16 +77,16 @@ module Pgpm
           %setup #{setup_opts.join(" ")}
           #{(sources[1..] || []).filter { |s| unpack?(s) }.each_with_index.map { |_src, index| "%setup -T -D #{setup_opts.join(" ")} -a #{index + 1}" }.join("\n")}
 
-          export PG_CONFIG=$(rpm -ql #{@postgres_distribution} | grep 'pg_config$')
+          export PG_CONFIG=$(rpm -ql #{@postgres_distribution.pg_config_package} | grep 'pg_config$')
           #{@package.configure_steps.map(&:to_s).join("\n")}
 
           %build
-          export PG_CONFIG=$(rpm -ql #{@postgres_distribution} | grep 'pg_config$')
+          export PG_CONFIG=$(rpm -ql #{@postgres_distribution.pg_config_package} | grep 'pg_config$')
           export PGPM_BUILDROOT=%{buildroot}
           #{@package.build_steps.map(&:to_s).join("\n")}
 
           %install
-          export PG_CONFIG=$(rpm -ql #{@postgres_distribution} | grep 'pg_config$')
+          export PG_CONFIG=$(rpm -ql #{@postgres_distribution.pg_config_package} | grep 'pg_config$')
           export PGPM_BUILDROOT=%{buildroot}
           cp %{SOURCE#{sources.find_index { |src| src.name == "pg_config.sh" }}} ./pg_config.sh
           chmod +x ./pg_config.sh

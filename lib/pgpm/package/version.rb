@@ -32,6 +32,14 @@ module Pgpm
         to_s.hash
       end
 
+      def major
+        to_s.split(".").first.to_i
+      end
+
+      def minor
+        to_s.split(".")[1].to_i
+      end
+
       def satisfies?(range)
         raise "unsupported version provider" unless @version.is_a?(SemverDialects::BaseVersion)
 

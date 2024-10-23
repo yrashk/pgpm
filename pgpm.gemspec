@@ -40,6 +40,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "git", "~> 2.3.0"
   spec.add_dependency "lspace", "~> 0.14"
   spec.add_dependency "minitar", "~> 1.0.2"
+  spec.add_dependency "nokogiri", "~> 1.16"
   spec.add_dependency "oj", "~> 3.16.6"
   spec.add_dependency "parallel", "~> 1.26.3"
   spec.add_dependency "perfect_toml", "~> 0.9.0"
