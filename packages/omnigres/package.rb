@@ -74,7 +74,7 @@ module Omnigres
     end
 
     def build_dependencies
-      %w[cmake openssl-devel python3 python3-devel nc sudo] + super
+      %w[cmake openssl-devel python3 python3-devel nc sudo git] + super
     end
 
     def dependencies
