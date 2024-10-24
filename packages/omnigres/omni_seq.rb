@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniSeq < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Extended Postgres sequence tooling"
     end
   end
 end

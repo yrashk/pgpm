@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniOs < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Access to the operating system"
     end
   end
 end

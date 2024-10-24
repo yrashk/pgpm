@@ -19,6 +19,10 @@ module Pgpm
         "TODO: license"
       end
 
+      def broken?
+        requires.any?(&:broken?)
+      end
+
       module ClassMethods
         def extension_name
           self[:latest].extension_name

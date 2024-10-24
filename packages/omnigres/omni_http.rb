@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniHttp < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Common HTTP types library"
     end
   end
 end

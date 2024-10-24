@@ -17,9 +17,12 @@ old_ver=$2
 old_ver_path=$3
 new_ver=$4
 new_ver_path=$5
+depends_on_omni=$6
 
+if [[ "$depends_on_omni" == "yes" ]]; then
 new_ver_omni_ver=$(cat ${new_ver_path}/versions.txt | grep "^omni=" | cut -d "=" -f 2)
 old_ver_omni_ver=$(cat ${old_ver_path}/versions.txt | grep "^omni=" | cut -d "=" -f 2)
+fi
 
 # Build the old extension
 if [[ -f ${old_ver_path}/cmake/dependencies/CMakeLists.txt ]]; then
@@ -28,11 +31,17 @@ else
    cmake -S "${old_ver_path}/extensions/${ext_name}" -B "${old_ver_path}/build" -DPG_CONFIG=$PG_CONFIG -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DOPENSSL_CONFIGURED=1
 fi
 cmake --build "${old_ver_path}/build" --parallel --target inja
+if [[ "$depends_on_omni" == "yes" ]]; then
 cmake --build "${old_ver_path}/build" --parallel --target package_omni_extension --target package_omni_migrations --target package_extensions
+else
+cmake --build "${old_ver_path}/build" --parallel --target package_extensions
+fi
 #
 
+if [[ "$depends_on_omni" == "yes" ]]; then
 file $old_ver_path/build/packaged/omni--$old_ver_omni_ver.so
 file $new_ver_path/build/packaged/omni--$new_ver_omni_ver.so
+fi
 
 # Determine the path to the extension in the new version
 extpath=$(cat ${new_ver_path}/build/paths.txt | grep "^$ext_name " | cut -d " " -f 2)
@@ -83,7 +92,11 @@ sockdir=$(sudo -u postgres mktemp -d)
 # We copy all scripts because there are dependencies
 cp -v "$old_ver_path"/build/packaged/extension/*.sql "$old_ver_path"/build/packaged/extension/*.control "$PGSHAREDIR/extension"
 cp -v "$old_ver_path"/build/packaged/*.so "$PG_LIBDIR"
+if [[ "$depends_on_omni" == "yes" ]]; then
 sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir" -o "-c shared_preload_libraries='$PG_LIBDIR/omni--$old_ver_omni_ver.so'"
+else
+sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"
+fi
 sudo -u postgres "$PG_BINDIR/createdb" -h "$sockdir" "$ext_name"
 cat <<EOF | sudo -u postgres "$PG_BINDIR/psql" -h "$sockdir" $ext_name -v ON_ERROR_STOP=1
      create table procs0 as (select * from pg_proc);
@@ -99,7 +112,11 @@ sudo -u postgres "$PG_BINDIR/pg_ctl" stop -D  "$db" -m smart
 # We copy all scripts because there are dependencies
 cp -v "$new_ver_path"/build/packaged/extension/*.sql "$new_ver_path"/build/packaged/extension/*.control "$PGSHAREDIR/extension"
 cp -v "$new_ver_path"/build/packaged/*.so "$PG_LIBDIR"
+if [[ "$depends_on_omni" == "yes" ]]; then
 sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"  -o "-c shared_preload_libraries='$PG_LIBDIR/omni--$new_ver_omni_ver.so'"
+else
+sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"
+fi
 # * install the extension from the head revision
 echo "create extension $ext_name version '$new_ver' cascade;" | sudo -u postgres "$PG_BINDIR/psql" -h "$sockdir" -v ON_ERROR_STOP=1 $ext_name
 # get changed functions
@@ -116,13 +133,21 @@ EOF
 # first, let's stop current database to load older extension again
 sudo -u postgres "$PG_BINDIR/pg_ctl" stop -D  "$db" -m smart
 cp "$DEST_DIR/$ext_name--$old_ver--$new_ver.sql" "$old_ver_path/build/packaged/extension/$ext_name--$old_ver.control" "$old_ver_path/build/packaged/extension/$ext_name--$old_ver.sql" "$PGSHAREDIR/extension"
+if [[ "$depends_on_omni" == "yes" ]]; then
 sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir" -o "-c shared_preload_libraries='$PG_LIBDIR/omni--$old_ver_omni_ver.so'"
+else
+sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"
+fi
 cat <<EOF | sudo -u postgres "$PG_BINDIR/psql" -h "$sockdir" $ext_name -v ON_ERROR_STOP=1
         drop extension $ext_name;
         create extension $ext_name version '$old_ver' cascade;
 EOF
 sudo -u postgres "$PG_BINDIR/pg_ctl" stop -D  "$db" -m smart
+if [[ "$depends_on_omni" == "yes" ]]; then
 sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"  -o "-c shared_preload_libraries='$PG_LIBDIR/omni--$new_ver_omni_ver.so'"
+else
+sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"
+fi
     cat <<EOF | sudo -u postgres "$PG_BINDIR/psql" -h "$sockdir" $ext_name -v ON_ERROR_STOP=1
     alter extension $ext_name update to '$new_ver';
 EOF

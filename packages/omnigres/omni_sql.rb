@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniSql < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Programmatic access to SQL"
     end
   end
 end

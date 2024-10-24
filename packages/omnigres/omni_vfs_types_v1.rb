@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniVfsTypesV1 < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Virtual File System API"
     end
   end
 end

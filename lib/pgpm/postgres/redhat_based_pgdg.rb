@@ -16,6 +16,15 @@ module Pgpm
       def pg_config_package
         "postgresql#{major_version}"
       end
+
+      def package_for(extension)
+        case extension
+        when Contrib::Plpython3u
+          "postgresql#{major_version}-plpython3 = #{version}"
+        else
+          "postgresql#{major_version}-contrib = #{version}"
+        end
+      end
     end
   end
 end

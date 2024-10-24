@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniManifest < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Improved extension installation"
     end
   end
 end

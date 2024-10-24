@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniMimetypes < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "MIME types and file extensions"
     end
   end
 end

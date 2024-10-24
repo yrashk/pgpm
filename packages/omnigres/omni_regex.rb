@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniRegex < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Feature-rich regular expresssions"
     end
   end
 end

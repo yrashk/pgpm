@@ -44,6 +44,10 @@ module Pgpm
               puts "Package #{name} not found"
               exit(1)
             end
+            if p.contrib?
+              puts "Can't build a contrib package"
+              exit(1)
+            end
             pkg = p[version]
             if pkg.nil?
               puts "Package #{name} with version #{version} not found"
@@ -73,6 +77,10 @@ module Pgpm
             arch.with_scope do
               selected_pgdist.with_scope do
                 b = pkgs.reduce(nil) do |c, p|
+                  if p.broken?
+                    puts "Can't build a broken package #{p.name}@#{p.version}"
+                    exit(1)
+                  end
                   p = Pgpm::ScopedObject.new(p, os, arch)
                   spec = p.to_rpm_spec
                   builder = Pgpm::RPM::Builder.new(spec)
@@ -87,6 +95,7 @@ module Pgpm
             end
           end
         end
+
         # rubocop:enable Metrics/ParameterLists:
       end
 
@@ -97,6 +106,8 @@ module Pgpm
           _ = args
           query_regexp = Regexp.new(query, "i")
           Parallel.filter_map(Pgpm::Package) do |p|
+            next if p.contrib?
+
             matches = p.all_searchable_texts.any? do |t|
               t =~ query_regexp
             end

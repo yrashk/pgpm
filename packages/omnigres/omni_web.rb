@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniWeb < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Web stack primitives"
     end
   end
 end

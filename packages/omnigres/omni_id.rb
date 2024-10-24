@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniId < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Identity types"
     end
   end
 end

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 module Omnigres
-  class OmniVar < Pgpm::Package
+  class OmniPolyfill < Pgpm::Package
     include Package
 
     def summary
-      "Variable management"
+      "Provides polyfills for older versions of Postgres"
     end
   end
 end

@@ -16,10 +16,13 @@ module Pgpm
     include Versioning
     include Subscripting
     include Enumerating
+    include Native
     include Building
+    include Make
     include Rust
     include Initialization
     include Packaging
+    include Contrib
 
     def inspect
       "#<#{self.class}:#{self.class.package_name} #{version}>"

@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+require "minitar"
+require "find"
+require "zlib"
+require "progress"
+
 # rubocop:disable Metrics/ModuleLength
 module Omnigres
   module Package
@@ -23,11 +28,25 @@ module Omnigres
     def version_git_commit
       discovery = ExtensionDiscovery.new
       intended_commit = discovery.extension_git_revisions[name][version]
-      # `empty?` is not available below
+      dir = discovery.git.dir.to_s
+      most_likely_extension_dir = File.join(dir, extension_path(dir))
+      # If there has been no changes between the intended commit and the source code of the extension,
+      # we can just use HEAD and get a newer build system.
+      # However, there are some corner cases: because we allowed for some extensions to share tenancy
+      # in the same directory (looking at you, omni_vfs_types_v1), they are not recognized here correctly
+      # that there has been no change and that renders current omni_vfs_types_v1 (Oct 24, 2024) unbuildable,
+      # which is an unintentional outcome.
+      # To fix that, we check if migrate/#{name} is present:
+      migrate_directory = File.join(dir, extension_path(dir), "migrate", name)
+      # and if it is, we use that particular directory as a marker
+      check_path = File.directory?(migrate_directory) ? migrate_directory : most_likely_extension_dir
+      # It is not absolutely robust, but if we only use this technique for private in-tree extensions going
+      # forward, this should be sufficient
       # rubocop:disable Style/ZeroLengthPredicate
-      if discovery.git.log.object(File.join(discovery.git.dir.to_s, "extensions", name)).between(intended_commit, "HEAD").size.zero?
+      # `empty?` is not available below
+      if discovery.git.log.object(check_path).between(intended_commit, "origin/master").size.zero?
         # rubocop:enable Style/ZeroLengthPredicate
-        discovery.git.log.first.sha
+        discovery.git.object("origin/master").log.first.sha
       else
         intended_commit
       end
@@ -36,7 +55,7 @@ module Omnigres
     def configure_steps
       extra_config = contains_vendorized_deps? ? "" : "-DCPM_SOURCE_CACHE=$(pwd)/deps/_deps "
       ["export PIP_CONFIG_FILE=$(pwd)/deps/pip.conf",
-       "cmake -S extensions/#{name} -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo " \
+       "cmake -S #{extension_path} -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo " \
          "-DOPENSSL_CONFIGURED=1 -DPG_CONFIG=$PG_CONFIG #{extra_config}"]
     end
 
@@ -45,9 +64,9 @@ module Omnigres
         "cmake --build build --parallel --target inja",
         "cmake --build build --parallel --target package_extensions"
       ]
-      if previous_version && !@no_migration
+      if previous_version && !previous_version.broken? && !@no_migration
         steps.push("scripts/generate_upgrade.sh #{name} #{previous_version.version} " \
-          "$(pwd)/omnigres-#{previous_version.version_git_commit} #{version} $(pwd)")
+                     "$(pwd)/omnigres-#{previous_version.version_git_commit} #{version} $(pwd) #{depends_on_omni? || name == "omni" ? "yes" : "no"}")
       end
       steps
     end
@@ -57,13 +76,13 @@ module Omnigres
         "mkdir -p $PGPM_BUILDROOT/$($PG_CONFIG --sharedir)/extension",
         "mkdir -p $PGPM_BUILDROOT/$($PG_CONFIG --pkglibdir)",
         # Package .so artifacts
-        "cp build/packaged/#{name}*.so $PGPM_BUILDROOT/$($PG_CONFIG --pkglibdir)",
+        "find build/packaged -name '#{name}*.so' -type f -exec cp {} $PGPM_BUILDROOT/$($PG_CONFIG --pkglibdir) \\;",
         # Package version-specific control file
         "cp build/packaged/extension/#{name}--#{version}.control $PGPM_BUILDROOT/$($PG_CONFIG --sharedir)/extension",
         # Package version-specific init file
         "cp build/packaged/extension/#{name}--#{version}.sql $PGPM_BUILDROOT/$($PG_CONFIG --sharedir)/extension"
       ]
-      if previous_version && !@no_migration
+      if previous_version && !previous_version.broken? && !@no_migration
         steps.push("cp build/packaged/extension/#{name}--#{previous_version.version}--#{version}.sql $PGPM_BUILDROOT/$($PG_CONFIG --sharedir)/extension")
       end
       steps
@@ -81,6 +100,22 @@ module Omnigres
       ["openssl"] + super
     end
 
+    def native?
+      super(extension_path)
+    end
+
+    def broken?
+      # omni < 0.1.5 does not work on pg17+ and the package is known to depend on `omni` (or is `omni` itself)
+      ((depends_on_omni? || name == "omni") && artifacts.keys.any? { |(k, v)| k == "omni" && Pgpm::Package::Version.new(v) < "0.1.5" } &&
+        Pgpm::Postgres::Distribution.in_scope.major_version >= 17) ||
+        ## Versions with cmake/dependencies are not supported
+        !File.directory?(File.join(source, "cmake", "dependencies"))
+    end
+
+    def depends_on_omni?
+      false
+    end
+
     def source_url_directory_name
       "omnigres-#{version_git_commit}"
     end
@@ -92,23 +127,12 @@ module Omnigres
     end
 
     def deps_tar_gz(dir_name = "deps")
-      @os = Pgpm::OS.auto_detect
-      if @os.is_a?(Pgpm::OS::RedHat)
-        system "sudo dnf -y install libxml2-devel libxslt-devel cmake gcc g++ python3-devel"
-      end
       recipe_hash = Digest::SHA1.hexdigest(File.read(__FILE__) + scripts_tar_gz.read)
-      deps = File.join(source, dir_name)
       src = source.to_s
-      ready_marker = File.join(src, ".complete.#{recipe_hash}")
+      deps = File.join(src, dir_name)
       targz = File.join(src, "deps-#{recipe_hash}.tar.gz")
-      unless File.exist?(ready_marker)
-        raise UnsupportedVersion unless File.directory?(File.join(src, "cmake", "dependencies"))
-        # FIXME: this is not perfect as we're still required to have the build-time dependencies
-        # required for this (such as g++, python3-devel, cmake, g++, etc...)
-        unless system "cmake -S #{src}/cmake/dependencies -B #{deps} -DCPM_SOURCE_CACHE=#{deps}/_deps"
-          raise "Can't fetch dependencies"
-        end
-
+      unless File.exist?(targz)
+        cmake_dependencies(dir_name)
         begin
           sgz = Zlib::GzipWriter.new(File.open(targz, "wb"))
           tar = Minitar::Output.open(sgz)
@@ -126,9 +150,49 @@ module Omnigres
         ensure
           tar.close
         end
-        FileUtils.touch(ready_marker)
       end
       Pgpm::OnDemandFile.new("#{dir_name}.tar.gz", -> { File.open(targz) })
+    end
+
+    def artifacts(src = nil)
+      install_prerequisites
+      recipe_hash = Digest::SHA1.hexdigest(File.read(__FILE__))
+      src ||= source.to_s
+      ready_marker = File.join(src, ".configure.#{recipe_hash}")
+      unless File.exist?(ready_marker)
+        pgpath = File.join(Pgpm::Cache.directory, ".omnigres.pg", Pgpm::Postgres::Distribution.in_scope.version)
+        # Sadly, there was a bug in the cmake file before 0081991, substituting for incorrect PGSHAREDIR
+        # Work around it with setting `PGSHAREDIR` preventatively
+        share_fix = ""
+        begin
+          Git.open(src).object("0081991")
+        rescue Git::GitExecuteError
+          share_fix = "PGSHAREDIR=#{pgpath}/build/share"
+        end
+        unless system "#{share_fix} cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
+          raise "Can't configure the project"
+        end
+
+        FileUtils.touch(ready_marker)
+      end
+
+      artifacts = File.read(File.join(src, "build", "artifacts.txt"))
+      artifacts.each_line.map do |line|
+        pkg, deps = line.split("#")
+        deps = deps ? deps.chomp.split(",") : []
+        deps = deps.map do |dep|
+          dep_name, dep_ver = dep.split("=")
+          [dep_name, dep_ver]
+        end.to_h
+        [pkg.chomp.split("="), deps]
+      end.to_h
+    end
+
+    def requires
+      artifacts[[name, version]].map do |(dep_name, dep_ver)|
+        dep_name = "omnigres/#{dep_name}" if dep_name =~ /^omni_/ || dep_name == "omni"
+        Pgpm::Package[dep_name][dep_ver]
+      end
     end
 
     def original_sources
@@ -142,7 +206,7 @@ module Omnigres
       unless contains_vendorized_deps?
         @srcs.push(deps_tar_gz)
       end
-      if previous_version
+      if previous_version && !previous_version.broken?
         begin
           puts "Fetching previous version #{previous_version.version} to be able to generate migrations"
           @srcs.push(*previous_version.original_sources) # archive
@@ -166,6 +230,15 @@ module Omnigres
     end
 
     private
+
+    def extension_path(src = nil)
+      src ||= source.to_s
+      artifacts(src)
+      File.read(File.join(src, "build", "paths.txt")).each_line.map do |line|
+        ext, path = line.split(" ")
+        return path if ext == name
+      end
+    end
 
     def previous_version
       return @previous_version if @previous_version
@@ -195,6 +268,33 @@ module Omnigres
         tar.close
       end
       Pgpm::OnDemandFile.new("scripts.tar.gz", -> { StringIO.open(s) })
+    end
+
+    def install_prerequisites
+      return if @prerequisites_installed
+
+      @os = Pgpm::OS.auto_detect
+      if @os.is_a?(Pgpm::OS::RedHat)
+        system "sudo dnf -y install libxml2-devel libxslt-devel cmake gcc g++ python3-devel openssl-devel bison flex readline-devel nc"
+      end
+      @prerequisites_installed = true
+    end
+
+    def cmake_dependencies(dir_name = "deps")
+      install_prerequisites
+
+      recipe_hash = Digest::SHA1.hexdigest(File.read(__FILE__))
+      deps = File.join(source, dir_name)
+      src = source.to_s
+      ready_marker = File.join(src, ".deps.#{recipe_hash}")
+      return if File.exist?(ready_marker)
+      raise UnsupportedVersion unless File.directory?(File.join(src, "cmake", "dependencies"))
+
+      unless system "cmake -S #{src}/cmake/dependencies -B #{deps} -DCPM_SOURCE_CACHE=#{deps}/_deps"
+        raise "Can't fetch dependencies"
+      end
+
+      FileUtils.touch(ready_marker)
     end
   end
 end

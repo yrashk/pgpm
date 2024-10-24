@@ -13,6 +13,10 @@ module Pgpm
         []
       end
 
+      def requires
+        []
+      end
+
       def c_files_present?
         Dir.glob("*.c", base: source).any?
       end

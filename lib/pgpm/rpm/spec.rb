@@ -67,8 +67,17 @@ module Pgpm
           #{sources.each_with_index.map { |src, index| "Source#{index}: #{src.name}" }.join("\n")}
 
           BuildRequires: #{@postgres_distribution.build_time_requirement_packages.join(" ")}
-          #{@package.build_dependencies.map { |dep| "BuildRequires: #{dep}" }.join("\n")}
+          #{@package.build_dependencies.uniq.map { |dep| "BuildRequires: #{dep}" }.join("\n")}
+          #{@package.dependencies.uniq.map { |dep| "Requires: #{dep}" }.join("\n")}
+          #{@package.requires.uniq.map do |dep|
+            req = dep.contrib? ? @postgres_distribution.package_for(dep) : "pgpm-#{dep.name}-#{@postgres_distribution.version}_#{dep.version}"
+            raise "Can't build with a broken dependency #{dep.name}@#{dep.version}" if dep.broken?
+
+            "Requires: #{req}"
+          end.join("\n")
+          }
           Requires: #{@postgres_distribution.requirement_packages.join(" ")}
+          #{"BuildArch: noarch" unless @package.native?}
 
           %description
           #{@package.description}
