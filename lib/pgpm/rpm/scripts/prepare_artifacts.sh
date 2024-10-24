@@ -14,16 +14,19 @@ for file in $(find $PGPM_BUILDROOT -name '*.so'); do
   fi
 done
 
-if [[ -n "$new_extension_so" ]]; then
+extdir=$PGPM_BUILDROOT$($PG_CONFIG --sharedir)/extension
 
-  extdir=$PGPM_BUILDROOT$($PG_CONFIG --sharedir)/extension
+# control files
+default_control=$extdir/$PGPM_EXTENSION_NAME.control
+versioned_control=$extdir/$PGPM_EXTENSION_NAME--$PGPM_EXTENSION_VERSION.control
+controls=("$default_control" "$versioned_control")
+
+
+if [[ -n "$new_extension_so" ]]; then
 
   mv "$PGPM_BUILDROOT$extension_dirname/$extension_so" "$PGPM_BUILDROOT$extension_dirname/$new_extension_so"
 
-  # control files
-  default_control=$extdir/$PGPM_EXTENSION_NAME.control
-  versioned_control=$extdir/$PGPM_EXTENSION_NAME--$PGPM_EXTENSION_VERSION.control
-  controls=("$default_control" "$versioned_control")
+  # Change the extension name in controls
   for control in "${controls[@]}"; do
     if [[ -f "$control" ]]; then
       # extension.so
@@ -32,17 +35,6 @@ if [[ -n "$new_extension_so" ]]; then
       sed -i "s|${extension_so%".so"}'|${new_extension_so%".so"}'|g" "$control"
     fi
   done
-  if [[ -f "$default_control" ]]; then
-    if [[ -f "$versioned_control" ]]; then
-      # We don't need default control if versioned is present
-      rm -f "$default_control"
-    else
-      # Default becomes versioned
-      mv "$default_control" "$versioned_control"
-      # Don't need default_version
-      sed -i '/default_version/d' "$versioned_control"
-    fi
-  fi
 
   # sql files
   for sql_file in $(find $PGPM_BUILDROOT -name '*.sql' -type f); do
@@ -78,4 +70,19 @@ if [[ -n "$new_extension_so" ]]; then
 
   # TODO: share, docs, etc.
 
+fi
+
+
+# Make sure we don't build a default control as it belongs
+# to another package
+if [[ -f "$default_control" ]]; then
+  if [[ -f "$versioned_control" ]]; then
+    # We don't need default control if versioned is present
+    rm -f "$default_control"
+  else
+    # Default becomes versioned
+    mv "$default_control" "$versioned_control"
+    # Don't need default_version
+    sed -i '/default_version/d' "$versioned_control"
+  fi
 fi

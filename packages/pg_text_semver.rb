@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
-class Pgvector < Pgpm::Package
-  github "pgvector/pgvector"
+class PgTextSemver < Pgpm::Package
+  github "bigsmoke/pg_text_semver"
 end
