@@ -26,6 +26,8 @@ COPY Gemfile /pgpm
 COPY pgpm.gemspec /pgpm
 RUN cd /pgpm && bundle
 
+COPY containers.conf /etc/containers/containers.conf
+
 ENV QEMU_CPU max
 
 VOLUME /pgpm
