@@ -85,6 +85,6 @@ jobs:
       - name: Create and push manifest images
         uses: Noelware/docker-manifest-action@master # or use a pinned version in the Releases tab
         with:
-          inputs: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
+          inputs: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:mastre
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master-amd64,${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:master-arm64
           push: true
