@@ -55,7 +55,7 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           context: .
           push: true
-          tags: latest-${{ matrix.platform}}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           allow: security.insecure
           cache-from: type=gha,url=http://127.0.0.1:49160/
