@@ -32,8 +32,14 @@ end
 
 define_method(:load_packages) do |path = nil|
   path ||= Pathname(File.dirname(__FILE__)).join("..", "packages")
-  loader.push_dir(path)
-  reload!
+  pkg_loader = Zeitwerk::Registry.loaders.find { |loader| loader.dirs.include?(path.to_s) }
+  return pkg_loader if pkg_loader
+  pkg_loader = Zeitwerk::Loader.new
+  pkg_loader.push_dir(path)
+  pkg_loader.enable_reloading
+  pkg_loader.setup
+  pkg_loader.eager_load
+  pkg_loader
 end
 
 module Pgpm
