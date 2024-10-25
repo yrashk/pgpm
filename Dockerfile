@@ -10,7 +10,7 @@
 # DOCKER_BUILDKIT=1 docker build --allow security.insecure -t pgpm:local /path/to/pgpm
 # ```
 
-FROM fedora:41 AS pgpm-rpm
+FROM fedora:41 AS pgpm
 
 RUN dnf -y install rpmlint ruby ruby-devel mock git gcc zlib-devel
 # Pre-initialize mock roots
@@ -24,11 +24,21 @@ RUN mkdir -p /pgpm
 COPY lib /pgpm/lib
 COPY Gemfile /pgpm
 COPY pgpm.gemspec /pgpm
-RUN cd /pgpm && bundle
+COPY exe /pgpm/exe
+RUN chmod +x /pgpm/exe/*
+RUN cd /pgpm && gem build && gem install -n /usr/local/bin pgpm*.gem
+RUN rm -rf pgpm
 
 COPY containers.conf /etc/containers/containers.conf
 
 ENV QEMU_CPU max
+
+
+FROM pgpm AS pgpm-dev
+
+COPY . /pgpm
+RUN cd /pgpm && bundle install
+RUN rm -rf /pgpm
 
 VOLUME /pgpm
 WORKDIR /pgpm

@@ -19,8 +19,18 @@ module Pgpm
         end
       end
 
+      module SharedOptions
+        def self.included(base)
+          base.class_eval do
+            option :pkgdir, type: :string, default: File.directory?("packages") ? "packages" : nil, desc: "Directory to load packages from"
+          end
+        end
+      end
+
       class Build < Dry::CLI::Command
         desc "Build packages"
+
+        include SharedOptions
 
         option :os, type: :string, default: Pgpm::OS.auto_detect.name, desc: "OS name"
         option :arch, type: :string, default: Pgpm::Arch.host.name, desc: "Target architecture"
@@ -29,10 +39,12 @@ module Pgpm
         argument :packages, type: :array, required: true, desc: "Package names"
 
         # rubocop:disable Metrics/ParameterLists:
-        def call(packages:, args: nil, os: nil, arch: nil, pgdist: nil, pgver: nil)
+        def call(packages:, args: nil, os: nil, arch: nil, pgdist: nil, pgver: nil, pkgdir: nil)
           _ = args
           _ = os
           _ = pgdist
+
+          Pgpm.load_packages(pkgdir)
 
           # puts "There is no build support for OS distribution `#{os}`"
           # exit(1)
@@ -100,10 +112,15 @@ module Pgpm
       end
 
       class Search < Dry::CLI::Command
+        include SharedOptions
+
         argument :query, type: :string, default: ".*", desc: "Search query"
 
-        def call(query:, args: nil)
+        def call(query:, args: nil, pkgdir: nil)
           _ = args
+
+          Pgpm.load_packages(pkgdir)
+
           query_regexp = Regexp.new(query, "i")
           Parallel.filter_map(Pgpm::Package) do |p|
             next if p.contrib?
@@ -123,5 +140,4 @@ module Pgpm
   end
 end
 
-Pgpm.load_packages(File.join(Dir.pwd, "packages"))
 Dry::CLI.new(Pgpm::CLI::Commands).call
