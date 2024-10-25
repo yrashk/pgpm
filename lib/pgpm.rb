@@ -32,8 +32,9 @@ end
 
 define_method(:load_packages) do |path = nil|
   path ||= Pathname(File.dirname(__FILE__)).join("..", "packages")
-  pkg_loader = Zeitwerk::Registry.loaders.find { |loader| loader.dirs.include?(path.to_s) }
+  pkg_loader = Zeitwerk::Registry.loaders.find { |l| l.dirs.include?(path.to_s) }
   return pkg_loader if pkg_loader
+
   pkg_loader = Zeitwerk::Loader.new
   pkg_loader.push_dir(path)
   pkg_loader.enable_reloading
