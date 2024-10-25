@@ -12,7 +12,7 @@ module Pgpm
           elsif name == :latest && package_versioning_scheme == :semver
             return nil if package_versions.empty?
 
-            version = package_versions.map { |ver| ver.is_a?(Pgpm::Package::Version) ? ver : Pgpm::Package::Version.new(ver) }.sort.last
+            version = package_versions.map { |ver| ver.is_a?(Pgpm::Package::Version) ? ver : Pgpm::Package::Version.new(ver) }.max
             new(Pgpm::Package::Version.new(version.to_s))
           elsif name == :latest
             null
