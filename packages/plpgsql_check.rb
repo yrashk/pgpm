@@ -25,7 +25,7 @@ class PlpgsqlCheck < Pgpm::Package
 
   def pg_config_hardcoded?
     # https://github.com/okbob/plpgsql_check/pull/179
-    version <= "2.7.11"
+    version <= "2.7.12"
   end
 
   def export_pg_config_to_path
