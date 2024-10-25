@@ -275,7 +275,7 @@ module Omnigres
 
       @os = Pgpm::OS.auto_detect
       if @os.is_a?(Pgpm::OS::RedHat)
-        system "sudo dnf -y install libxml2-devel libxslt-devel cmake gcc g++ python3-devel openssl-devel bison flex readline-devel nc"
+        system "sudo dnf -y install libxml2-devel libxslt-devel cmake gcc g++ python3-devel openssl-devel bison flex readline-devel nc perl-FindBin perl-File-Compare"
       end
       @prerequisites_installed = true
     end
