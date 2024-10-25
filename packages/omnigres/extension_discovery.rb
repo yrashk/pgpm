@@ -7,20 +7,27 @@ module Omnigres
   class ExtensionDiscovery
     @@extensions = {}
     @@git_revisions = {}
+    @mutex = Mutex.new
+
+    class << self
+      attr_reader :mutex # Expose a class-level reader for the mutex
+    end
 
     def initialize(revision: nil, path: nil)
       return if @@extensions[revision]
 
       suffix = revision ? "-#{revision}" : nil
       path ||= Pgpm::Cache.directory.join("omnigres#{suffix}")
-      git =
-        if File.directory?(path)
-          ::Git.open(path)
-        else
-          ::Git.clone("https://github.com/omnigres/omnigres", path)
-        end
-      git.checkout(revision) if revision
-      @git = git
+      self.class.mutex.synchronize do
+        git =
+          if File.directory?(path)
+            ::Git.open(path)
+          else
+            ::Git.clone("https://github.com/omnigres/omnigres", path)
+          end
+        git.checkout(revision) if revision
+        @git = git
+      end
     end
 
     attr_reader :git

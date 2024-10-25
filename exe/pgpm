@@ -5,6 +5,7 @@ require "bundler/setup"
 require "pgpm"
 require "dry/cli"
 require "parallel"
+require "etc"
 
 module Pgpm
   module CLI
@@ -48,7 +49,7 @@ module Pgpm
 
           # puts "There is no build support for OS distribution `#{os}`"
           # exit(1)
-          pkgs = Parallel.flat_map(packages) do |package|
+          pkgs = Parallel.flat_map(packages, in_threads: Etc.nprocessors) do |package|
             name, version = package.split("@")
             version ||= :latest
             p = Pgpm::Package[name]
@@ -122,7 +123,7 @@ module Pgpm
           Pgpm.load_packages(pkgdir)
 
           query_regexp = Regexp.new(query, "i")
-          Parallel.filter_map(Pgpm::Package) do |p|
+          Parallel.filter_map(Pgpm::Package, in_threads: Etc.nprocessors) do |p|
             next if p.contrib?
 
             matches = p.all_searchable_texts.any? do |t|
