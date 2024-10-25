@@ -141,4 +141,5 @@ module Pgpm
   end
 end
 
+Pgpm.reload!
 Dry::CLI.new(Pgpm::CLI::Commands).call
