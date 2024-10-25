@@ -4,6 +4,8 @@ require "minitar"
 require "find"
 require "zlib"
 require "progress"
+require "oj"
+require "digest"
 
 # rubocop:disable Metrics/ModuleLength
 module Omnigres
@@ -167,9 +169,9 @@ module Omnigres
         begin
           Git.open(src).object("0081991")
         rescue Git::GitExecuteError
-          share_fix = "PGSHAREDIR=#{pgpath}/build/share"
+          share_fix = "-e PGSHAREDIR=#{pgpath}/build/share"
         end
-        unless system "#{share_fix} cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
+        unless system "podman run #{share_fix} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
           raise "Can't configure the project"
         end
 
@@ -270,12 +272,22 @@ module Omnigres
       Pgpm::OnDemandFile.new("scripts.tar.gz", -> { StringIO.open(s) })
     end
 
+    PGPM_BUILD_CONTAINER = "fedora:41 dnf -y install git gcc zlib-devel libxml2-devel libxslt-devel cmake gcc g++ python3-devel openssl-devel bison flex readline-devel nc perl-FindBin perl-File-Compare"
+    PGPM_BUILD_CONTAINER_IMAGE = "pgpm-#{Digest::SHA256.hexdigest(PGPM_BUILD_CONTAINER)}"
+
     def install_prerequisites
       return if @prerequisites_installed
 
       @os = Pgpm::OS.auto_detect
       if @os.is_a?(Pgpm::OS::RedHat)
-        system "sudo dnf -y install libxml2-devel libxslt-devel cmake gcc g++ python3-devel openssl-devel bison flex readline-devel nc perl-FindBin perl-File-Compare"
+        images = Oj.load(`podman images --format json`)
+        unless images.flat_map { |i| i["Names"] }.include?("localhost/#{PGPM_BUILD_CONTAINER_IMAGE}:latest")
+          tmpfile = Tempfile.new
+          system "podman run --cidfile #{tmpfile.path} #{PGPM_BUILD_CONTAINER}"
+          id = File.read(tmpfile.path)
+          tmpfile.unlink
+          system "podman commit #{id} #{PGPM_BUILD_CONTAINER_IMAGE}"
+        end
       end
       @prerequisites_installed = true
     end
@@ -290,7 +302,7 @@ module Omnigres
       return if File.exist?(ready_marker)
       raise UnsupportedVersion unless File.directory?(File.join(src, "cmake", "dependencies"))
 
-      unless system "cmake -S #{src}/cmake/dependencies -B #{deps} -DCPM_SOURCE_CACHE=#{deps}/_deps"
+      unless system "podman run -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE} cmake -S #{src}/cmake/dependencies -B #{deps} -DCPM_SOURCE_CACHE=#{deps}/_deps"
         raise "Can't fetch dependencies"
       end
 
