@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rbconfig"
+require "lspace"
 
 module Pgpm
   class Arch

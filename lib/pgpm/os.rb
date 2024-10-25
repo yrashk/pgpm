@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "lspace"
+
 module Pgpm
   module OS
     class Base
