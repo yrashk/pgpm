@@ -273,7 +273,7 @@ module Omnigres
     end
 
     PGPM_BUILD_CONTAINER = "fedora:41 dnf -y install git gcc zlib-devel libxml2-devel libxslt-devel cmake gcc g++ python3-devel openssl-devel bison flex readline-devel nc perl-FindBin perl-File-Compare"
-    PGPM_BUILD_CONTAINER_IMAGE = "pgpm-#{Digest::SHA256.hexdigest(PGPM_BUILD_CONTAINER)}"
+    PGPM_BUILD_CONTAINER_IMAGE = "pgpm-#{Digest::SHA256.hexdigest(PGPM_BUILD_CONTAINER)}".freeze
 
     def install_prerequisites
       return if @prerequisites_installed
