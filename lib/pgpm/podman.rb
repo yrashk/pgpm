@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
 require "English"
+require "open3"
 
 module Pgpm
   module Podman
     def self.run(command, unhandled_reboot_mitigation: true)
-      output = `podman #{command} 2>&1`
+      system("podman #{command}")
+
       if $CHILD_STATUS.exitstatus != 0
-        raise StandardError, output unless unhandled_reboot_mitigation && output =~ /Please delete directories/
+        raise StandardError, errors unless unhandled_reboot_mitigation
 
         FileUtils.rm_rf(["/run/containers/storage", "/run/libpod"])
         run(command, unhandled_reboot_mitigation: false)
