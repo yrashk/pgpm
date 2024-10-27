@@ -171,7 +171,7 @@ module Omnigres
         rescue Git::GitExecuteError
           share_fix = "-e PGSHAREDIR=#{pgpath}/build/share"
         end
-        unless system "podman run #{share_fix} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
+        unless Podman.run "run #{share_fix} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
           raise "Can't configure the project"
         end
 
@@ -283,10 +283,10 @@ module Omnigres
         images = Oj.load(`podman images --format json`)
         unless images.flat_map { |i| i["Names"] }.include?("localhost/#{PGPM_BUILD_CONTAINER_IMAGE}:latest")
           tmpfile = Tempfile.new
-          system "podman run --cidfile #{tmpfile.path} #{PGPM_BUILD_CONTAINER}"
+          Pgpm::Podman.run "run --cidfile #{tmpfile.path} #{PGPM_BUILD_CONTAINER}"
           id = File.read(tmpfile.path)
           tmpfile.unlink
-          system "podman commit #{id} #{PGPM_BUILD_CONTAINER_IMAGE}"
+          Pgpm::Podman.run "commit #{id} #{PGPM_BUILD_CONTAINER_IMAGE}"
         end
       end
       @prerequisites_installed = true
@@ -302,7 +302,7 @@ module Omnigres
       return if File.exist?(ready_marker)
       raise UnsupportedVersion unless File.directory?(File.join(src, "cmake", "dependencies"))
 
-      unless system "podman run -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE} cmake -S #{src}/cmake/dependencies -B #{deps} -DCPM_SOURCE_CACHE=#{deps}/_deps"
+      unless Pgpm::Podman.run "run -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE} cmake -S #{src}/cmake/dependencies -B #{deps} -DCPM_SOURCE_CACHE=#{deps}/_deps"
         raise "Can't fetch dependencies"
       end
 
