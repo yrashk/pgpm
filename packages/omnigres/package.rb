@@ -280,7 +280,7 @@ module Omnigres
 
       @os = Pgpm::OS.auto_detect
       if @os.is_a?(Pgpm::OS::RedHat)
-        images = Oj.load(Pgpm::Podman.run("images --format json"))
+        images = Oj.load(Pgpm::Podman.run("images --format json", print_stdout: false))
         unless images.flat_map { |i| i["Names"] }.include?("localhost/#{PGPM_BUILD_CONTAINER_IMAGE}:latest")
           tmpfile = Tempfile.new
           Pgpm::Podman.run "run --cidfile #{tmpfile.path} #{PGPM_BUILD_CONTAINER}"
