@@ -2,20 +2,22 @@
 
 require "English"
 require "open3"
+require "tty-command"
 
 module Pgpm
   module Podman
     def self.run(command, unhandled_reboot_mitigation: true)
-      system("podman #{command}")
+      result = TTY::Command.new(printer: :quiet).run("podman #{command}", pty: true)
 
-      if $CHILD_STATUS.exitstatus != 0
-        raise StandardError, errors unless unhandled_reboot_mitigation
+      if result.status != 0
+        if unhandled_reboot_mitigation && result.err =~ /Please delete/
+          FileUtils.rm_rf(["/run/containers/storage", "/run/libpod"])
+          run(command, unhandled_reboot_mitigation: false)
+        end
 
-        FileUtils.rm_rf(["/run/containers/storage", "/run/libpod"])
-        run(command, unhandled_reboot_mitigation: false)
-
+        raise StandardError, result.err
       end
-      output
+      result.out
     end
   end
 end
