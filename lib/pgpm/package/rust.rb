@@ -22,12 +22,12 @@ module Pgpm
 
           vendor_dir = Dir.mktmpdir("pgpm")
 
-          podman = "podman run -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} -v #{vendor_dir}:#{vendor_dir} rust"
-          system "#{podman} cargo add --manifest-path #{source}/Cargo.toml --dev cargo-pgrx@#{pgrx_version}"
-          system "#{podman} cargo vendor --versioned-dirs --manifest-path #{source}/Cargo.toml #{vendor_dir}/vendor"
+          podman_cmd = "run -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} -v #{vendor_dir}:#{vendor_dir} rust"
+          Podman.run("#{podman_cmd} cargo add --manifest-path #{source}/Cargo.toml --dev cargo-pgrx@#{pgrx_version}")
+          Podman.run("#{podman_cmd} cargo vendor --versioned-dirs --manifest-path #{source}/Cargo.toml #{vendor_dir}/vendor")
           vendored_pgrx_version = Dir.glob("cargo-pgrx-*", base: File.join(vendor_dir, "vendor"))[0].split("-").last
           # Get cargo-pgrx's dependencies vendored, too
-          system "#{podman} cargo vendor --no-delete --versioned-dirs --manifest-path #{vendor_dir}/vendor/cargo-pgrx-#{vendored_pgrx_version}/Cargo.toml #{vendor_dir}/vendor"
+          Podman.run("#{podman_cmd} cargo vendor --no-delete --versioned-dirs --manifest-path #{vendor_dir}/vendor/cargo-pgrx-#{vendored_pgrx_version}/Cargo.toml #{vendor_dir}/vendor")
           File.write(File.join(vendor_dir, "vendor", "PGRX_VERSION"), vendored_pgrx_version) # Write it down so that configure steps don't have to guess
 
           @srcs.push(vendored_tar_gz(vendor_dir))
