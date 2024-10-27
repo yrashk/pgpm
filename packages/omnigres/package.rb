@@ -171,7 +171,7 @@ module Omnigres
         rescue Git::GitExecuteError
           share_fix = "-e PGSHAREDIR=#{pgpath}/build/share"
         end
-        unless Podman.run "run #{share_fix} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
+        unless Pgpm::Podman.run "run #{share_fix} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
           raise "Can't configure the project"
         end
 
@@ -280,7 +280,7 @@ module Omnigres
 
       @os = Pgpm::OS.auto_detect
       if @os.is_a?(Pgpm::OS::RedHat)
-        images = Oj.load(Podman.run("images --format json"))
+        images = Oj.load(Pgpm::Podman.run("images --format json"))
         unless images.flat_map { |i| i["Names"] }.include?("localhost/#{PGPM_BUILD_CONTAINER_IMAGE}:latest")
           tmpfile = Tempfile.new
           Pgpm::Podman.run "run --cidfile #{tmpfile.path} #{PGPM_BUILD_CONTAINER}"
