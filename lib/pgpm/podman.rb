@@ -16,7 +16,7 @@ module Pgpm
     rescue TTY::Command::ExitError => e
       if unhandled_reboot_mitigation && e.message =~ /Please delete/
         FileUtils.rm_rf(["/run/containers/storage", "/run/libpod"])
-        run(command, unhandled_reboot_mitigation: false)
+        return run(command, print_stdout:, unhandled_reboot_mitigation: false)
       end
 
       raise
