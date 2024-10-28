@@ -31,6 +31,8 @@ RUN rm -rf pgpm
 
 COPY containers.conf /etc/containers/containers.conf
 
+RUN rm -rf /run/containers/storage /run/libpod
+
 ENV QEMU_CPU max
 
 
