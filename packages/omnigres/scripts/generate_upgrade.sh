@@ -32,9 +32,9 @@ else
 fi
 cmake --build "${old_ver_path}/build" --parallel --target inja
 if [[ "$depends_on_omni" == "yes" ]]; then
-cmake --build "${old_ver_path}/build" --parallel --target package_omni_extension --target package_omni_migrations --target package_extensions
+cmake --build "${old_ver_path}/build" --parallel --target package_omni_extension --target package_omni_migrations --target package_${ext_name}_extension --target package_${ext_name}_migrations
 else
-cmake --build "${old_ver_path}/build" --parallel --target package_extensions
+cmake --build "${old_ver_path}/build" --parallel --target package_${ext_name}_extension --target package_${ext_name}_migrations
 fi
 #
 
