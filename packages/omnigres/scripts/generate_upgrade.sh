@@ -70,6 +70,9 @@ for file in $old_migrate_path/*.sql; do
   old_migrations+=($(basename "$file"))
 done
 
+# Prepare a migration file (possibly empty)
+touch "$DEST_DIR/$ext_name--$old_ver--$new_ver.sql"
+
 for mig in ${new_migrations[@]}; do
   if [ ! -f "$old_migrate_path/$mig" ]; then
      $new_ver_path/build/inja/inja "$new_migrate_path/$mig" >> "$DEST_DIR/$ext_name--$old_ver--$new_ver.sql"
@@ -77,8 +80,6 @@ for mig in ${new_migrations[@]}; do
      echo >> "$DEST_DIR/$ext_name--$old_ver--$new_ver.sql"
   fi
 done
-
-cat "$DEST_DIR/$ext_name--$old_ver--$new_ver.sql"
 
 # Now, we need to replace functions that have changed
 # For this, we'll:
