@@ -58,7 +58,7 @@ module Omnigres
       extra_config = contains_vendorized_deps? ? "" : "-DCPM_SOURCE_CACHE=$(pwd)/deps/_deps "
       ["export PIP_CONFIG_FILE=$(pwd)/deps/pip.conf",
        "cmake -S #{extension_path} -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo " \
-         "-DOPENSSL_CONFIGURED=1 -DPG_CONFIG=$PG_CONFIG #{extra_config}"]
+         "-DOPENSSL_CONFIGURED=1 -DPG_CONFIG=$PG_CONFIG #{extra_config} -DCMAKE_POSITION_INDEPENDENT_CODE=ON"]
     end
 
     def build_steps
