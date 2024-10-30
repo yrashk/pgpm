@@ -20,10 +20,14 @@ class CustomInflector < Zeitwerk::GemInflector
   end
 end
 
+module Pgpm
+end
+
 loader = Zeitwerk::Loader.for_gem
 loader.inflector = CustomInflector.new(__FILE__)
 loader.enable_reloading
 loader.setup
+loader.eager_load
 
 define_method(:reload!) do
   loader.reload
@@ -41,7 +45,4 @@ define_method(:load_packages) do |path = nil|
   pkg_loader.setup
   pkg_loader.eager_load
   pkg_loader
-end
-
-module Pgpm
 end
