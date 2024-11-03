@@ -47,35 +47,34 @@ module Omnigres
     def process_git_log
       return if @@extensions[@git.log.first.sha]
 
-      merges = @git.log(:all).select { |c| c.parents.size > 1 }
-      commit_merges = Hash[Parallel.flat_map(merges) do |m|
-        before = m.parents[0].sha
-        after = m.parents[1].sha
-        commits = git.log.between(before, after).map(&:sha)
-        commits.product([m.sha])
-      end]
+      # Direct merge commits into master
+      direct_master_merges = @git.lib.send(:command, "rev-list", "master", "--first-parent").split.map
 
-      versions_maps = @git.log(:all).path("versions.txt").flat_map do |c|
-        Hash[@git.show(c,
-                       "versions.txt").split("\n").map do |l|
-               ext, ver = l.split("=")
-               [[ext, c.sha], Pgpm::Package::Version.new(ver)]
-             end]
+      # Get versions.txt from all direct merges (we don't want to consider what's inside a merge
+      # as it may contain versions we never released)
+      # This is going to create a hash table [name, sha] => version
+      versions_map = @git.log(:all).path("versions.txt").select { |c| direct_master_merges.include?(c.sha) }.each_with_object({}) do |c, h|
+        lines = @git.show(c, "versions.txt").split
+        lines.each do |l|
+          ext, ver = l.split("=")
+          h[[ext, c.sha]] = Pgpm::Package::Version.new(ver)
+        end
       end
-      extensions = versions_maps.flat_map(&:keys).map(&:first).uniq
-      @@extensions[@git.log.first.sha] = Hash[extensions.map do |e|
-        [e, versions_maps.map do |m|
-          m.transform_keys(&:first)[e]
-        end.compact.uniq.sort]
-      end]
-      last_hashes = Hash[versions_maps.flat_map do |h|
-        h.each_pair.map { |(ext, sha), ver| [[ext, ver], sha] }
-      end]
-      @@git_revisions[@git.log.first.sha] = last_hashes.each_with_object({}) do |((name, version), sha), result|
+
+      # Hash mapping extension names to a list of versions
+      # name => [versions]
+      @@extensions[@git.log.first.sha] = versions_map.group_by { |(name, _sha), _ver| name }
+                                                     .transform_values { |entries| entries.map { |_key, version| version }.uniq }
+
+      # Hash mapping extension versions to SHAs
+      # [name][ver] => sha
+      # Note that we're getting the latest merges that contain this version – it doesn't mean that these
+      # are the merges where those versions were introduced. But that's okay because if they are there,
+      # they are buildable at least as of those merges and possible at the HEAD of master.
+      @@git_revisions[@git.log.first.sha] = versions_map.each_with_object({}) do |((name, sha), version), result|
         result[name] ||= {}
-        result[name][version] = commit_merges[sha]
-      end.transform_values { |versions| versions.uniq { |_version, merge| merge }.to_h } # Filter out versions that were historical part of the merge
-      @@extensions[@git.log.first.sha] = @@extensions[@git.log.first.sha].map { |name, versions| [name, versions.filter { |v| @@git_revisions[@git.log.first.sha][name].include?(v) }] }.to_h
+        result[name][version] = sha
+      end
     end
   end
 end
