@@ -44,10 +44,21 @@ module Omnigres
       check_path = File.directory?(migrate_directory) ? migrate_directory : most_likely_extension_dir
       # It is not absolutely robust, but if we only use this technique for private in-tree extensions going
       # forward, this should be sufficient
-      # rubocop:disable Style/ZeroLengthPredicate
-      # `empty?` is not available below
-      if discovery.git.log.object(check_path).between(intended_commit, "origin/master").size.zero?
-        # rubocop:enable Style/ZeroLengthPredicate
+
+      # Now, we try to see what has actually changed
+      log = discovery.git.log.object(check_path).between(intended_commit, "origin/master")
+      changed_files = []
+      log.each do |commit|
+        next if commit.parents.empty? # Skip commits with no parents (e.g., initial commit)
+
+        diff = commit.diff(commit.parents.first)
+
+        changed_files += diff.stats[:files].keys.select { |f| f.start_with?(extension_path(dir)) }.uniq
+      end
+      # Changelog modifications are not changing anything
+      changed_files.reject! { |f| f =~ /CHANGELOG.md/ }
+
+      if changed_files.empty?
         discovery.git.object("origin/master").log.first.sha
       else
         intended_commit
