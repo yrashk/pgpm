@@ -31,10 +31,25 @@ else
    cmake -S "${old_ver_path}/extensions/${ext_name}" -B "${old_ver_path}/build" -DPG_CONFIG=$PG_CONFIG -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DOPENSSL_CONFIGURED=1
 fi
 cmake --build "${old_ver_path}/build" --parallel --target inja
+
+package_target=""
+
+# Get all targets matching package_*_extension and package_*_migrations
+# except for package_omni_extension and package_omni_migrations
+# and a private packages with its tests (not relevant after https://github.com/omnigres/omnigres/pull/686
+# but needs to stay here as long as try build older versions)
+all_targets=$(cmake --build "${old_ver_path}/build" --target help | grep -E "^[. ]*package_.*_(extension|migrations)$" | grep -Ev "package_omni_(test_|test_v2_)?(extension|migrations)" | sed 's/^... //')
+
+# Construct the string with each target prefixed by '--target'
+for target in $all_targets; do
+    target_name=$(echo "$target" | xargs) # Remove any leading/trailing spaces
+    package_targets+="--target ${target_name} "
+done
+
 if [[ "$depends_on_omni" == "yes" ]]; then
-cmake --build "${old_ver_path}/build" --parallel --target package_omni_extension --target package_omni_migrations --target package_${ext_name}_extension --target package_${ext_name}_migrations
+cmake --build "${old_ver_path}/build" --parallel --target package_omni_extension --target package_omni_migrations --target package_${ext_name}_migrations ${package_targets}
 else
-cmake --build "${old_ver_path}/build" --parallel --target package_${ext_name}_extension --target package_${ext_name}_migrations
+cmake --build "${old_ver_path}/build" --parallel ${package_targets}
 fi
 #
 
@@ -92,7 +107,7 @@ sockdir=$(sudo -u postgres mktemp -d)
 # * install the extension in this revision, snapshot pg_proc, drop the extension
 # We copy all scripts because there are dependencies
 cp -v "$old_ver_path"/build/packaged/extension/*.sql "$old_ver_path"/build/packaged/extension/*.control "$PGSHAREDIR/extension"
-cp -v "$old_ver_path"/build/packaged/*.so "$PG_LIBDIR"
+find "$old_ver_path/build/packaged" -maxdepth 1 -name '*.so' -type f -exec cp -v {} "$PG_LIBDIR" \;
 if [[ "$depends_on_omni" == "yes" ]]; then
 sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir" -o "-c shared_preload_libraries='$PG_LIBDIR/omni--$old_ver_omni_ver.so'"
 else
@@ -112,7 +127,7 @@ EOF
 sudo -u postgres "$PG_BINDIR/pg_ctl" stop -D  "$db" -m smart
 # We copy all scripts because there are dependencies
 cp -v "$new_ver_path"/build/packaged/extension/*.sql "$new_ver_path"/build/packaged/extension/*.control "$PGSHAREDIR/extension"
-cp -v "$new_ver_path"/build/packaged/*.so "$PG_LIBDIR"
+find "$new_ver_path/build/packaged" -name '*.so' -type f -exec cp -v {} "$PG_LIBDIR" \;
 if [[ "$depends_on_omni" == "yes" ]]; then
 sudo -u postgres "$PG_BINDIR/pg_ctl" start -D "$db" -o "-c max_worker_processes=64" -o "-c listen_addresses=''" -o "-k $sockdir"  -o "-c shared_preload_libraries='$PG_LIBDIR/omni--$new_ver_omni_ver.so'"
 else
