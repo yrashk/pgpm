@@ -73,7 +73,7 @@ module Pgpm
             req = dep.contrib? ? @postgres_distribution.package_for(dep) : "pgpm-#{dep.name}-#{@postgres_distribution.version}_#{dep.version}"
             raise "Can't build with a broken dependency #{dep.name}@#{dep.version}" if dep.broken?
 
-            "Requires: #{req}"
+            "Requires: #{req}#{"\nBuildRequires: #{req}" if dep.contrib?}"
           end.join("\n")
           }
           Requires: #{@postgres_distribution.requirement_packages.join(" ")}
