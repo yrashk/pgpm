@@ -7,7 +7,7 @@ module Pgpm
         def self.buildsrpm(spec, sources, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
           args = [
-            "--chain", "--buildsrpm", "--spec", spec, "--resultdir",
+            "--buildsrpm", "--spec", spec, "--resultdir",
             buffer_result_dir
           ]
           args.push("--sources", sources) if sources
@@ -26,11 +26,13 @@ module Pgpm
         def self.rebuild(srpm, config: nil, result_dir: nil, cb: nil)
           buffer_result_dir = Dir.mktmpdir("pgpm")
           args = [
-            "--chain", "--rebuild", srpm, "--resultdir", buffer_result_dir
+            "--rebuild", "--chain", "--recurse", srpm, "--localrepo", buffer_result_dir
           ]
           args.push("-r", config.to_s) unless config.nil?
           new(*args, cb: lambda {
-            rpms = Dir.glob("*.rpm", base: buffer_result_dir).map do |f|
+            # Here we glob for **/*.rpm as ``--localrepo` behaves differently from
+            # `--resultdir`
+            rpms = Dir.glob("**/*.rpm", base: buffer_result_dir).map do |f|
               FileUtils.cp(Pathname(buffer_result_dir).join(f), result_dir) unless result_dir.nil?
               f
             end
@@ -57,7 +59,11 @@ module Pgpm
         end
 
         def chain(op)
-          self.class.new(*(@args + op.args), cb: lambda {
+          raise ArgumentError, "can't chain non-rebuild operations" unless op.args.include?("--rebuild") && @args.include?("--rebuild")
+
+          args = @args.clone
+          args.insert(@args.index("--localrepo") - 1, op.args[op.args.index("--localrepo") - 1])
+          self.class.new(*args, cb: lambda {
             res1 = @cb&.call
             res2 = op.cb&.call
             return res1 + res2 if res1.is_a?(Array) && res2.is_a?(Array)

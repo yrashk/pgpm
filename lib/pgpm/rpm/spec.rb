@@ -25,6 +25,7 @@ module Pgpm
 
           BuildRequires: #{@postgres_distribution.build_time_requirement_packages.join(" ")}
           Requires: pgpm-#{@package.name}-#{@postgres_distribution.version}_#{@package.version}
+          BuildRequires: pgpm-#{@package.name}-#{@postgres_distribution.version}_#{@package.version}
           BuildArch:  noarch
 
           %description
@@ -36,7 +37,8 @@ module Pgpm
           export PG_CONFIG=$(rpm -ql #{@postgres_distribution.pg_config_package} | grep 'pg_config$')
           mkdir -p %{buildroot}$($PG_CONFIG --sharedir)/extension
           export CONTROL=%{buildroot}$($PG_CONFIG --sharedir)/extension/#{@package.extension_name}.control
-          echo "default_version = '#{@package.version}'" > $CONTROL
+          cat $($PG_CONFIG --sharedir)/extension/#{@package.extension_name}--#{@package.version}.control#{" "}
+          echo "default_version = '#{@package.version}'" >> $CONTROL
           echo ${CONTROL#"%{buildroot}"} > filelist.txt
 
           %files -f filelist.txt
