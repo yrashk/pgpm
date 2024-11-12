@@ -39,9 +39,9 @@ if [[ -n "$new_extension_so" ]]; then
   # sql files
   for sql_file in $(find $PGPM_BUILDROOT -name '*.sql' -type f); do
     # extension.so
-    sed -i "s|${extension_so}'|${new_extension_so}'|g" "$sql_file"
+    sed -i "s|/${extension_so}'|/${new_extension_so}'|g" "$sql_file"
     # extension
-    sed -i "s|${extension_so%".so"}'|${new_extension_so}'|g" "$sql_file"
+    sed -i "s|/${extension_so%".so"}'|/${new_extension_so}'|g" "$sql_file"
   done
 
   # bitcode
