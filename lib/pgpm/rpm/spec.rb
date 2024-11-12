@@ -37,7 +37,8 @@ module Pgpm
           export PG_CONFIG=$(rpm -ql #{@postgres_distribution.pg_config_package} | grep 'pg_config$')
           mkdir -p %{buildroot}$($PG_CONFIG --sharedir)/extension
           export CONTROL=%{buildroot}$($PG_CONFIG --sharedir)/extension/#{@package.extension_name}.control
-          cat $($PG_CONFIG --sharedir)/extension/#{@package.extension_name}--#{@package.version}.control#{" "}
+          cat $($PG_CONFIG --sharedir)/extension/#{@package.extension_name}--#{@package.version}.control  > $CONTROL
+          echo >> $CONTROL
           echo "default_version = '#{@package.version}'" >> $CONTROL
           echo ${CONTROL#"%{buildroot}"} > filelist.txt
 
