@@ -12,11 +12,12 @@ Postgres.pm is designed to deliver Postgres extensions
 in native packaging (such as RPM, DEB, OCI images, etc.)
 to support the broad variety of usage patterns.
 
+</details>
+
 > [!NOTE]
 > Early release is targeting RHEL-based distributions using
 > official PGDG Postgres distributions with other options
 > coming up.
-</details>
 
 <details>
 <summary>Low-effort package maintenance</summary>
