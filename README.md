@@ -6,7 +6,7 @@ distributing Postgres extensions and packages.
 ## Key objectives
 
 <details>
-<summary>Platform independence</summary>
+<summary><b>Platform independence</b></summary>
 
 Postgres.pm is designed to deliver Postgres extensions
 in native packaging (such as RPM, DEB, OCI images, etc.)
@@ -20,7 +20,7 @@ to support the broad variety of usage patterns.
 > coming up.
 
 <details>
-<summary>Low-effort package maintenance</summary>
+<summary><b>Low-effort package maintenance</b></summary>
 
 Postgres.pm embraces the concept of inferences: based
 on given information, it'll figure out how to build the package
@@ -41,7 +41,7 @@ end
 </details>
 
 <details>
-<summary>Package definition flexibility</summary>
+<summary><b>Package definition flexibility</b></summary>
 
 Packages definitions are defined in Ruby, allowing for near-infinite
 flexibility of their definition when necessary.
