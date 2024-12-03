@@ -67,7 +67,7 @@ Example:
 ./exe/pgpm build pgvector
 ```
 
-#### Build Command Options
+## pgpm build command
 
 ```
 Usage:
@@ -88,20 +88,39 @@ Examples:
 
 ```sh
 # Build specific version
-./exe/pgpm build pgvector@1.0.0
+pgpm build pgvector@1.0.0
 
 # Build for specific Postgres version
-./exe/pgpm build pgvector --pgver=15
+pgpm build pgvector --pgver=15
 
 # Build multiple packages
-./exe/pgpm build pgvector pg_cron
+pgpm build pgvector pg_cron
 
 # Build from custom package directory
-./exe/pgpm build pgvector --pkgdir=custom/packages
+pgpm build pgvector --pkgdir=custom/packages
 ```
 
+### Running pgpm build command via Official Docker Image
 
-## Building Docker Image
+Pull the official Docker image:
+
+```sh
+docker pull ghcr.io/postgres-pm/pgpm:latest
+```
+
+You can use the following command to build the packages:
+
+```sh
+docker run --rm -it ghcr.io/postgres-pm/pgpm:latest pgpm build pgvector
+```
+
+If using the development version (pgpm-dev stage), you can mount the current directory to the container:
+
+```sh
+docker run --rm -it -v $(pwd):/pgpm ghcr.io/postgres-pm/pgpm:latest pgpm build pgvector
+```
+
+### Building the Docker Image
 
 To build the Docker image, use the following command:
 
@@ -138,5 +157,12 @@ To remove the builder, run the following command:
 
 ```sh
 docker buildx rm insecure-builder
+```
+
+To remove the image, run the following command:
+
+```sh
+docker rmi pgpm:local
+docker rmi ghcr.io/postgres-pm/pgpm:latest
 ```
 
