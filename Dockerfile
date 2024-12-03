@@ -12,7 +12,7 @@
 
 FROM fedora:41 AS pgpm
 
-RUN dnf -y install rpmlint ruby ruby-devel mock git gcc zlib-devel
+RUN dnf -y install rpmlint ruby ruby-devel mock git gcc zlib-devel libyaml-devel
 # Pre-initialize mock roots
 COPY lib/pgpm/rpm/mock/configs configs
 RUN --security=insecure for file in $(find configs -name '*.cfg'); do for ver in "17 16 15 14 13"; \

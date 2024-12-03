@@ -53,5 +53,90 @@ with ease.
 ---
 
 ### Current Status
-
+ 
 We are preparing to start publishing RPM packages publicly soon. It's possible to build included packages manually.
+
+
+### Development
+
+To build the packages, use the [exe/pgpm](exe/pgpm) script.
+
+Example:
+
+```sh
+./exe/pgpm build pgvector
+```
+
+#### Build Command Options
+
+```
+Usage:
+  pgpm build PACKAGES...
+
+Arguments:
+  PACKAGES  # Package names (can include version with @, e.g., pgvector@1.0.0)
+
+Options:
+  --pkgdir=VALUE    # Directory to load packages from (default: "packages" if directory exists)
+  --os=VALUE        # OS name (default: auto-detected)
+  --arch=VALUE      # Target architecture (default: host architecture)
+  --pgdist=VALUE    # Target Postgres distribution (default: "pgdg")
+  --pgver=VALUE     # Target Postgres version (default: latest supported version)
+```
+
+Examples:
+
+```sh
+# Build specific version
+./exe/pgpm build pgvector@1.0.0
+
+# Build for specific Postgres version
+./exe/pgpm build pgvector --pgver=15
+
+# Build multiple packages
+./exe/pgpm build pgvector pg_cron
+
+# Build from custom package directory
+./exe/pgpm build pgvector --pkgdir=custom/packages
+```
+
+
+## Building Docker Image
+
+To build the Docker image, use the following command:
+
+```sh
+# Build and load the image into local Docker daemon
+docker buildx build --load --allow security.insecure -t pgpm:local .
+```
+
+To use insecure builder, you can run the following commands:
+
+```sh
+docker buildx create --name insecure-builder --driver-opt env.BUILDKIT_STEP_LOG_MAX_SIZE=-1 --buildkitd-flags '--allow-insecure-entitlement security.insecure'
+docker buildx use insecure-builder
+env DOCKER_BUILDKIT=1 docker build --allow security.insecure -t pgpm:local .
+```
+
+Later, you can use the builder by running:
+
+```sh
+env DOCKER_BUILDKIT=1 docker build --builder=insecure-builder --allow security.insecure -t pgpm:local .
+```
+
+To run the image, use the following command:
+
+```sh
+# If using the base pgpm image
+docker run --rm -it pgpm:local pgpm build pgvector
+
+# If using the development version (pgpm-dev stage)
+docker run --rm -it -v $(pwd):/pgpm pgpm:local ./exe/pgpm build pgvector
+```
+
+To remove the builder, run the following command:
+
+```sh
+docker buildx rm insecure-builder
+```
+
