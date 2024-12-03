@@ -182,7 +182,7 @@ module Omnigres
         rescue Git::GitExecuteError
           share_fix = "-e PGSHAREDIR=#{pgpath}/build/share"
         end
-        unless Pgpm::Podman.run "run -ti #{share_fix} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
+        unless Pgpm::Podman.run "run -ti #{share_fix} -v #{source}:#{source} -v #{Pgpm::Cache.directory}:#{Pgpm::Cache.directory} #{PGPM_BUILD_CONTAINER_IMAGE}  cmake -S #{src} -B #{src}/build -DOPENSSL_CONFIGURED=1 -DPGVER=#{Pgpm::Postgres::Distribution.in_scope.version} -DPGDIR=#{pgpath}"
           raise "Can't configure the project"
         end
 
@@ -258,6 +258,7 @@ module Omnigres
 
       sorted_versions = self.class.package_versions.sort
       index = sorted_versions.index(version)
+      return nil if index.nil?
       return unless index.positive?
 
       @previous_version = self.class[sorted_versions[index - 1]]

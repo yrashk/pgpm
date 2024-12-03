@@ -2,7 +2,11 @@
 
 module Pgpm
   class Package
-    module Sources
+    module Source
+      def source
+        raise StandardError, "no source specified"
+      end
+
       def sources
         []
       end

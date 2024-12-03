@@ -37,10 +37,11 @@ module Pgpm
         option :arch, type: :string, default: Pgpm::Arch.host.name, desc: "Target architecture"
         option :pgdist, type: :string, default: "pgdg", desc: "Target Postgres distribution"
         option :pgver, type: :string, default: Pgpm::Postgres::Distribution.versions.last.to_s, desc: "Target Postgres version"
+        option :path, type: :path, desc: "Override path to the source"
         argument :packages, type: :array, required: true, desc: "Package names"
 
         # rubocop:disable Metrics/ParameterLists:
-        def call(packages:, args: nil, os: nil, arch: nil, pgdist: nil, pgver: nil, pkgdir: nil)
+        def call(packages:, args: nil, os: nil, arch: nil, pgdist: nil, pgver: nil, pkgdir: nil, path: nil)
           _ = args
           _ = os
           _ = pgdist
@@ -61,7 +62,7 @@ module Pgpm
               puts "Can't build a contrib package"
               exit(1)
             end
-            pkg = p[version]
+            pkg = path.nil? ? p[version] : p.new(version).with_path(path)
             if pkg.nil?
               puts "Package #{name} with version #{version} not found"
               exit(1)

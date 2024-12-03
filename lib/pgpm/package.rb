@@ -6,7 +6,7 @@ module Pgpm
   class Package
     include Pgpm::Aspects::InheritanceTracker
     include AbstractPackage
-    include Sources
+    include Source
     include Naming
     include Metadata
     include Dependencies
@@ -23,6 +23,7 @@ module Pgpm
     include Initialization
     include Packaging
     include Contrib
+    include WithPath
 
     def inspect
       "#<#{self.class}:#{self.class.package_name} #{version}>"
