@@ -16,7 +16,8 @@ module Pgpm
         end
 
         def source_url_directory_name
-          commit = version_git_tag || version_git_commit
+          # GitHub strips leading `v` from version tags
+          commit = version_git_tag.gsub(/^v/, "") || version_git_commit
           "#{self.class.github_config.name.split("/").last}-#{commit}"
         end
       end
