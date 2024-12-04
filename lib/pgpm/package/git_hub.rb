@@ -7,11 +7,18 @@ module Pgpm
     module GitHub
       Config = Data.define(:name, :download_version_tags)
 
-      def sources
-        commit = version_git_tag || version_git_commit
-        [Pgpm::OnDemandFile.new("#{version}.tar.gz", lambda {
-          URI.open("https://github.com/#{self.class.github_config.name}/archive/#{commit}.tar.gz")
-        })] + super
+      module Methods
+        def sources
+          commit = version_git_tag || version_git_commit
+          [Pgpm::OnDemandFile.new("#{version}.tar.gz", lambda {
+            URI.open("https://github.com/#{self.class.github_config.name}/archive/#{commit}.tar.gz")
+          })] + super
+        end
+
+        def source_url_directory_name
+          commit = version_git_tag || version_git_commit
+          "#{self.class.github_config.name.split("/").last}-#{commit}"
+        end
       end
 
       module ClassMethods
@@ -20,6 +27,7 @@ module Pgpm
         def github(name, download_version_tags: true)
           @github_config = Config.new(name:, download_version_tags:)
           include Pgpm::Package::Git
+          include Methods
           git "https://github.com/#{@github_config.name}", download_version_tags:
         end
       end
