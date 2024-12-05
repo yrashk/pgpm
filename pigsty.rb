@@ -10,26 +10,46 @@ require "open-uri"
 URI.open("https://raw.githubusercontent.com/pgsty/extension/refs/heads/main/data/pigsty.csv") do |f|
   i = 0
   CSV.foreach(f, headers: true) do |row|
-    next unless row["url"] =~ /github/ || row["url"] =~ /gitlab/
-
-    origin = row["url"]
-    if row["url"] =~ /github/
-      github = origin.match(%r{https://github\.com/([^/]+)/([^/]+)}).captures.join("/")
-      origin = "github \"#{github}\""
-    else
-      origin = "git \"#{origin}\""
-    end
+    origin = row["url"].downcase
+    next unless origin =~ /https?:\/\/(github|gitlab)\.com\//
+    source = $1
+    namespace, project = origin.match(%r{https://#{source}\.com/([^/]+)/([^/]+)}).captures
+    namespace = namespace.downcase
+    origin = "#{source == "github" ? "github" : "git"} \"#{namespace}/#{project}\""
+    filename = "packages/#{namespace}/#{project}.rb"
+    next if File.exist?(filename) || File.exist?("packages/#{project}.rb")
     name = row["name"]
-    next if File.exist?("packages/#{name}.rb")
+    if namespace
+      dir = "packages/#{namespace}"
+      Dir.mkdir(dir) if !Dir.exist?(dir)
+    end
 
     i += 1
     classname = name.camelize
     new_class = <<~CLASS
-      class #{classname} < Pgpm::Package
-          #{origin}
+      # frozen_string_literal: true
+
+      class #{namespace ? "#{namespace.camelize}::#{classname}" : classname} < Pgpm::Package
+        #{origin}
+
+        def self.package_name
+          "#{name}"
+        end
+
+        def summary
+          "#{row["en_desc"]}"
+        end
+
+        def description
+          "#{row["en_desc"]}"
+        end
+
+        def license
+          "#{row["license"]}"
+        end
       end
     CLASS
-    File.write("packages/#{name}.rb", new_class)
+    File.write(filename, new_class)
     puts name
   end
   puts "#{i} packages imported"
