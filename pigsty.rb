@@ -7,6 +7,8 @@ require "pgpm"
 require "csv"
 require "open-uri"
 
+Pgpm.load_packages
+
 URI.open("https://raw.githubusercontent.com/pgsty/extension/refs/heads/main/data/pigsty.csv") do |f|
   i = 0
   CSV.foreach(f, headers: true) do |row|
@@ -20,6 +22,12 @@ URI.open("https://raw.githubusercontent.com/pgsty/extension/refs/heads/main/data
       origin = "git \"#{origin}\""
     end
     name = row["name"]
+
+    next if Pgpm::Package.find do |pkg|
+      origin =~ /github/ &&
+      pkg.respond_to?(:github_config) && pkg.github_config&.name == github
+    end
+
     next if File.exist?("packages/#{name}.rb")
 
     i += 1
